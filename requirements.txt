@@ -1,0 +1,19 @@
+# The ENGINE core needs nothing here -- it runs on the Python standard library.
+# These are for the web app + real Google delivery in production.
+
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+jinja2==3.1.4
+python-multipart==0.0.9
+itsdangerous==2.2.0            # signed session cookies
+
+# Real Google Drive / Sheets / Docs delivery + OAuth "Connect Google"
+google-api-python-client==2.134.0
+google-auth==2.30.0
+google-auth-oauthlib==1.2.0
+
+# Billing
+stripe==9.12.0
+
+# Production database (optional; SQLite used otherwise)
+psycopg[binary]==3.2.1

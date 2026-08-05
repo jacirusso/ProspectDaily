@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<h1>Dashboard</h1>
+
+{% if not has_answers %}
+  <div class="card">
+    <span class="pill warn">Step 1</span>
+    <h2>Tell us who to find</h2>
+    <p class="muted">Complete your target-audience questions so we know who your
+      best-fit prospects are.</p>
+    <a class="btn" href="/questionnaire">Define target audience</a>
+  </div>
+{% endif %}
+
+{% if customer.status != 'active' %}
+  <div class="card">
+    <span class="pill warn">Step 2</span>
+    <h2>Choose your daily volume</h2>
+    <p class="muted">Pick how many prospects you want per day. We always deliver
+      <strong>{{ overdeliver }}×</strong> that amount.</p>
+    <a class="btn" href="/plans">Choose a plan</a>
+  </div>
+{% endif %}
+
+<div class="card">
+  <div class="stat">
+    <div><div class="n">{{ customer.ordered_per_day }}</div><div class="muted">Ordered / day</div></div>
+    <div><div class="n">{{ delivered_per_day }}</div><div class="muted">Delivered / day</div></div>
+    <div><div class="n">{{ total_delivered }}</div><div class="muted">Total delivered (all time)</div></div>
+    <div>
+      <div class="n">
+        {% if customer.status=='active' %}<span class="pill ok">Active</span>
+        {% else %}<span class="pill warn">{{ customer.status|capitalize }}</span>{% endif %}
+      </div>
+      <div class="muted">Status</div>
+    </div>
+  </div>
+  {% if customer.status in ['active','paused','canceled'] %}
+  <div style="margin-top:16px;display:flex;gap:8px">
+    {% if customer.status=='active' %}
+      <form method="post" action="/account/pause"><button class="btn secondary small" type="submit">Pause deliveries</button></form>
+    {% elif customer.status=='paused' %}
+      <form method="post" action="/account/resume"><button class="btn small" type="submit">Resume deliveries</button></form>
+    {% endif %}
+    {% if customer.status!='canceled' %}
+      <form method="post" action="/account/cancel"
+            onsubmit="return confirm('Cancel your subscription? Daily deliveries will stop.')">
+        <button class="btn secondary small" type="submit">Cancel subscription</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Your Google Drive folder</h2>
+  {% if customer.client_folder_url %}
+    <p class="muted">Your private folder — every daily report lands here
+      automatically as a formatted Google Doc.</p>
+    <a class="btn" href="{{ customer.client_folder_url }}" target="_blank">📁 Open my prospects folder</a>
+  {% else %}
+    <p class="muted">We create your own private Google Drive folder automatically
+      with your first report, and the link will appear right here — nothing to
+      set up.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Reports</h2>
+  {% if has_answers %}
+    <form method="post" action="/run-now" style="margin-bottom:16px">
+      <button class="btn" type="submit">Generate today's report now</button>
+      <span class="muted">Runs the pipeline immediately (great for testing).</span>
+    </form>
+  {% endif %}
+  {% if runs %}
+    <table>
+      <tr><th>Date</th><th>Status</th><th>Ordered</th><th>Delivered</th><th>Report</th><th>CSV</th></tr>
+      {% for r in runs %}
+        <tr>
+          <td>{{ r.run_date }}</td>
+          <td>
+            {% if r.status=='error' %}
+              <span class="pill warn" title="{{ r.error }}">Failed</span>
+            {% else %}<span class="pill ok">OK</span>{% endif %}
+          </td>
+          <td>{{ r.ordered }}</td>
+          <td>{{ r.delivered }}</td>
+          <td>{% if r.sheet_url %}<a href="{{ r.sheet_url }}" target="_blank">Open</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td>{% if r.delivered %}<a href="/download/{{ r.id }}">Download</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">No reports yet. They'll appear here each day once your plan is active.</p>
+  {% endif %}
+</div>
+{% endblock %}

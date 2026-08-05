@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}ProspectDaily — Fresh B2B prospects every morning{% endblock %}
+{% block outer %}
+
+<section class="lp-hero">
+  <span class="eyebrow">ProspectDaily</span>
+  <h1>Fresh, verified B2B prospects in your inbox every morning.</h1>
+  <p class="sub">Tell us who your best customers are. Every weekday we deliver ready-to-contact
+    prospects — verified email, phone, LinkedIn, a company profile, why they fit, and a
+    personalized intro email — into your own Google Drive folder.</p>
+  <p class="promo">Order in groups of 10. We always deliver 50% more — free.</p>
+  <div class="cta-row">
+    <a class="btn lg" href="/signup">Start getting prospects</a>
+    <a class="btn lg secondary" href="/plans">See pricing</a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="inner">
+    <p class="eyebrow" style="text-align:center">How it works</p>
+    <h2 class="big">Three steps to a daily pipeline</h2>
+    <p class="lead">Set it up once. Wake up to new prospects every day.</p>
+    <div class="steps">
+      <div class="step"><div class="num">1</div>
+        <h3>Describe your buyer</h3>
+        <p>Answer a short questionnaire — industries, titles, company size, location, and the outcome you sell.</p></div>
+      <div class="step"><div class="num">2</div>
+        <h3>Pick your volume</h3>
+        <p>Choose how many prospects per day. We always deliver 1.5× your order at no extra cost.</p></div>
+      <div class="step"><div class="num">3</div>
+        <h3>Get them every weekday</h3>
+        <p>Each weekday morning a formatted report lands in your private Google Drive folder — never a repeat.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section tint">
+  <div class="inner">
+    <p class="eyebrow" style="text-align:center">What's in every report</p>
+    <h2 class="big">Everything you need to reach out — done for you</h2>
+    <div class="feature-grid" style="margin-top:34px">
+      <div class="feature"><div class="ic">✅</div><h3>Verified contact data</h3><p>Real, verified emails plus phone, LinkedIn, title, and full company profile.</p></div>
+      <div class="feature"><div class="ic">✍️</div><h3>Researched intro emails</h3><p>A personalized email for each prospect that references what their company actually does.</p></div>
+      <div class="feature"><div class="ic">🎯</div><h3>Precisely targeted</h3><p>Matched to your exact buyer — industry, seniority, company size, and location.</p></div>
+      <div class="feature"><div class="ic">🔁</div><h3>Never a duplicate</h3><p>We track everyone you've received, so you never see the same person twice.</p></div>
+      <div class="feature"><div class="ic">📁</div><h3>Your own Drive folder</h3><p>Reports arrive as clean Google Docs in a private folder that's yours.</p></div>
+      <div class="feature"><div class="ic">🏢</div><h3>Spread across companies</h3><p>One decision-maker per company by default — maximum reach, no clustering.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="inner">
+    <p class="eyebrow" style="text-align:center">Pricing</p>
+    <h2 class="big">Simple monthly plans</h2>
+    <p class="lead">Every plan delivers 50% more than you order. Cancel anytime.</p>
+    <div class="pricing-grid">
+      {% for p in plans %}
+      <div class="price-card {% if p.best_value %}featured{% endif %}">
+        {% if p.popular %}<div class="badge">Most popular</div>{% endif %}
+        {% if p.best_value %}<div class="badge">Best value</div>{% endif %}
+        <div class="tier">{{ p.name }}</div>
+        <div class="amt">${{ p.price }}<span>/mo</span></div>
+        <div class="deliver">{{ p.delivered }} prospects/day</div>
+        <ul>
+          <li>You order {{ p.ordered }}/day, get {{ p.delivered }}</li>
+          <li>~{{ p.monthly }} prospects / month</li>
+          <li>Verified email, phone & LinkedIn</li>
+          <li>Custom intro email each</li>
+          <li>Delivered to your Google Drive</li>
+        </ul>
+        <a class="btn" href="/signup">Get started</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section tint" style="text-align:center">
+  <div class="inner">
+    <h2 class="big">Ready for a daily pipeline?</h2>
+    <p class="lead">Set up your target audience in minutes.</p>
+    <a class="btn lg" href="/signup">Start now</a>
+  </div>
+</section>
+
+<div class="footer">
+  <p>© ProspectDaily · Fresh B2B prospects, delivered daily.</p>
+</div>
+{% endblock %}

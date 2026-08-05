@@ -1,0 +1,116 @@
+"""Assemble the daily prospect report. Produces the exact columns the customer
+asked for, and can write a local CSV (always available) as well as feed the
+Google Sheets exporter."""
+import csv
+import os
+from typing import List
+
+# Column order = what the customer sees in their daily report.
+COLUMNS = [
+    ("company", "Company"),
+    ("full_name", "Contact Name"),
+    ("title", "Title"),
+    ("company_address", "Address"),
+    ("phone", "Phone"),
+    ("email", "Email"),
+    ("website", "Website"),
+    ("linkedin_url", "LinkedIn"),
+    ("company_description", "Company Description"),
+    ("fit_reason", "Why It's a Good Fit"),
+    ("intro_email_subject", "Intro Email — Subject"),
+    ("intro_email_body", "Intro Email — Body"),
+]
+
+
+def rows_from(prospects) -> List[List[str]]:
+    """Header row followed by one row per prospect, in COLUMNS order."""
+    header = [label for _, label in COLUMNS]
+    body = []
+    for p in prospects:
+        d = p.to_dict()
+        body.append([str(d.get(key, "") or "") for key, _ in COLUMNS])
+    return [header] + body
+
+
+def _esc(s: str) -> str:
+    return (str(s or "").replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;"))
+
+
+# Brand palette for the Doc layout.
+_INK = "#1a1c23"; _MUTED = "#6b7280"; _BRAND = "#4f46e5"
+_CARD_BORDER = "#e5e7eb"; _DESC_BG = "#f3f4f6"
+_FIT_BG = "#ecfdf5"; _FIT_INK = "#047857"; _EMAIL_BG = "#eef2ff"
+
+
+def _contact_line(icon: str, label: str, value: str, link: bool = False) -> str:
+    if not value:
+        value = "—"
+    val = (f'<a href="{_esc(value)}">{_esc(value)}</a>'
+           if link and value != "—" else _esc(value))
+    return (f'<tr>'
+            f'<td style="padding:2px 10px 2px 0;color:{_MUTED};font-size:10pt;'
+            f'white-space:nowrap;">{icon}&nbsp;{label}</td>'
+            f'<td style="padding:2px 0;color:{_INK};font-size:11pt;">{val}</td></tr>')
+
+
+def html_report(prospects, heading: str) -> str:
+    """A polished, document-style layout: one styled 'card' per prospect.
+    Uploaded to Drive as a Google Doc (an alternative to the spreadsheet)."""
+    parts = [
+        f'<p style="color:{_MUTED};font-size:10pt;letter-spacing:1px;">'
+        f'PROSPECTDAILY</p>',
+        f'<h1 style="color:{_INK};font-size:22pt;margin:0;">{_esc(heading)}</h1>',
+        f'<p style="color:{_BRAND};font-weight:bold;font-size:12pt;">'
+        f'{len(prospects)} qualified prospects</p>',
+        f'<hr style="border:none;border-top:3px solid {_BRAND};">',
+    ]
+    for i, p in enumerate(prospects, 1):
+        d = p.to_dict()
+        meta = []
+        if d.get("employee_count"):
+            meta.append(f"~{d['employee_count']} employees")
+        if d.get("industry"):
+            meta.append(_esc(d["industry"]))
+        meta_line = (" &nbsp;·&nbsp; " + " &nbsp;·&nbsp; ".join(meta)) if meta else ""
+        body_html = _esc(d.get("intro_email_body", "")).replace("\n", "<br>")
+
+        contact = "".join([
+            _contact_line("✉️", "Email", d["email"]),
+            _contact_line("📞", "Phone", d["phone"]),
+            _contact_line("🌐", "Website", d["website"], link=True),
+            _contact_line("in", "LinkedIn", d["linkedin_url"], link=True),
+            _contact_line("📍", "Address", d["company_address"]),
+        ])
+
+        parts.append(f"""
+<table style="width:100%;border:1px solid {_CARD_BORDER};border-collapse:collapse;">
+  <tr><td style="background-color:{_BRAND};padding:12px 16px;">
+    <span style="color:#ffffff;font-size:14pt;font-weight:bold;">{i}. {_esc(d['full_name'])}</span><br>
+    <span style="color:#dfe1f5;font-size:11pt;">{_esc(d['title'])}</span>
+  </td></tr>
+  <tr><td style="padding:12px 16px;">
+    <p style="margin:0 0 8px 0;font-size:13pt;font-weight:bold;color:{_INK};">
+      {_esc(d['company'])}<span style="font-weight:normal;color:{_MUTED};font-size:10pt;">{meta_line}</span></p>
+    <table style="border-collapse:collapse;">{contact}</table>
+  </td></tr>
+  <tr><td style="background-color:{_DESC_BG};padding:10px 16px;color:#374151;font-style:italic;font-size:11pt;">
+    {_esc(d['company_description'])}</td></tr>
+  <tr><td style="background-color:{_FIT_BG};padding:10px 16px;font-size:11pt;">
+    <b style="color:{_FIT_INK};">✓ Why it's a good fit:</b> {_esc(d['fit_reason'])}</td></tr>
+  <tr><td style="background-color:{_EMAIL_BG};padding:12px 16px;">
+    <p style="margin:0 0 6px 0;color:{_MUTED};font-size:9pt;letter-spacing:1px;">READY-TO-SEND INTRO EMAIL</p>
+    <p style="margin:0 0 8px 0;font-weight:bold;font-size:11pt;color:{_INK};">Subject: {_esc(d.get('intro_email_subject',''))}</p>
+    <p style="margin:0;font-size:11pt;color:{_INK};line-height:1.5;">{body_html}</p>
+  </td></tr>
+</table>
+<p style="margin:6px 0;">&nbsp;</p>""")
+    return "<html><body>" + "".join(parts) + "</body></html>"
+
+
+def write_csv(prospects, path: str) -> str:
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows_from(prospects))
+    return path

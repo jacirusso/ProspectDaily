@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Your Target Audience{% endblock %}
+{% block body %}
+<div class="card">
+  <h1>Define your target audience</h1>
+  <p class="muted">Your answers drive who we find and how your intro emails read.
+    You can update these anytime.</p>
+  {% if errors %}
+    <div class="error"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+  {% endif %}
+  <form method="post" action="/questionnaire">
+    {% for q in questions %}
+      <label>{{ q.prompt }}{% if q.help %}<span class="help">{{ q.help }}</span>{% endif %}</label>
+      {% if q.kind == "textarea" %}
+        <textarea name="{{ q.key }}">{{ answers.get(q.key, "") }}</textarea>
+      {% elif q.kind == "select" %}
+        <select name="{{ q.key }}">
+          {% for opt in q.options %}
+            <option value="{{ opt }}" {% if answers.get(q.key)==opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      {% elif q.kind == "multiselect" %}
+        <div class="checks">
+          {% for opt in q.options %}
+            <label><input type="checkbox" name="{{ q.key }}" value="{{ opt }}"
+              {% if opt in answers.get(q.key, []) %}checked{% endif %}> {{ opt }}</label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <input type="text" name="{{ q.key }}" value="{{ answers.get(q.key, '') }}">
+      {% endif %}
+    {% endfor %}
+    <p style="margin-top:22px"><button class="btn" type="submit">Save target audience</button></p>
+  </form>
+</div>
+{% endblock %}

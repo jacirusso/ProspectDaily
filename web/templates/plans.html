@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Pricing{% endblock %}
+{% block wrapclass %}{% endblock %}
+{% block body %}
+<h1>Choose your plan</h1>
+<p class="muted">Every plan delivers <strong>50% more</strong> prospects than you order.
+  {% if not stripe_enabled %}<em>(Billing is in test mode — selecting a plan activates it immediately.)</em>{% endif %}</p>
+
+<div class="pricing-grid" style="margin-top:24px">
+  {% for p in plans %}
+  <div class="price-card {% if p.best_value %}featured{% endif %}">
+    {% if p.popular %}<div class="badge">Most popular</div>{% endif %}
+    {% if p.best_value %}<div class="badge">Best value</div>{% endif %}
+    <div class="tier">{{ p.name }}</div>
+    <div class="amt">${{ p.price }}<span>/mo</span></div>
+    <div class="deliver">{{ p.delivered }} prospects/day</div>
+    <ul>
+      <li>You order {{ p.ordered }}/day, get {{ p.delivered }}</li>
+      <li>~{{ p.monthly }} prospects / month</li>
+      <li>Verified email, phone & LinkedIn</li>
+      <li>Custom intro email each</li>
+      <li>Delivered to your Google Drive</li>
+      <li>No duplicates, ever</li>
+    </ul>
+    <form method="post" action="/plans/choose">
+      <input type="hidden" name="plan_key" value="{{ p.key }}">
+      <button class="btn" type="submit" style="width:100%">Choose {{ p.name }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

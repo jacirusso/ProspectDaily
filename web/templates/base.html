@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Prospect SaaS{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="/">📈 ProspectDaily</a>
+    <span class="spacer"></span>
+    {% if user %}
+      <a href="/dashboard">Dashboard</a>
+      <a href="/questionnaire">Target Audience</a>
+      <a href="/plans">Plan</a>
+      <a href="/logout">Log out</a>
+    {% else %}
+      <a href="/login">Log in</a>
+      <a class="btn small" href="/signup">Get started</a>
+    {% endif %}
+  </nav>
+  {% block outer %}
+  <div class="wrap {% block wrapclass %}{% endblock %}">
+    {% block body %}{% endblock %}
+  </div>
+  {% endblock %}
+</body>
+</html>
