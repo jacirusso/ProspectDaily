@@ -93,7 +93,14 @@
       {% endfor %}
     </table>
   {% else %}
-    <p class="muted">No reports yet. They'll appear here each day once your plan is active.</p>
+    {% if customer.status == 'active' %}
+      <p class="muted">You're all set! Your first report arrives the next weekday
+        morning in your Google Drive folder — and each weekday after that. Want one
+        right now? Click <strong>"Generate today's report now"</strong> above.</p>
+    {% else %}
+      <p class="muted">Once you choose a plan, your reports will appear here (and in
+        your Google Drive) every weekday morning.</p>
+    {% endif %}
   {% endif %}
 </div>
 {% endblock %}
