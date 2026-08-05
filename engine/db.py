@@ -146,13 +146,19 @@ def init_schema() -> None:
     ]
     conn = _connect_raw()
     try:
+        # Create tables and COMMIT them first. On Postgres a later failed
+        # statement aborts the whole transaction, so migrations must not share
+        # it with the CREATE TABLEs.
         for stmt in ddl:
             conn.execute(stmt)
+        conn.commit()
+        # Each migration in its own transaction: a failure (e.g. the column
+        # already exists) rolls back only itself, leaving the schema intact.
         for stmt in migrations:
             try:
                 conn.execute(stmt)
+                conn.commit()
             except Exception:
-                pass  # column already exists
-        conn.commit()
+                conn.rollback()
     finally:
         conn.close()
