@@ -21,6 +21,8 @@ services:
     startCommand: uvicorn web.app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: DATABASE_URL
         fromDatabase:
           name: prospectdaily-db
@@ -63,6 +65,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m engine.daily
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: DATABASE_URL
         fromDatabase:
           name: prospectdaily-db
