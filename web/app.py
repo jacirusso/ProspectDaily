@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from engine import config
+from engine import config, db
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe
@@ -32,6 +32,16 @@ app.add_middleware(SessionMiddleware,
                    secret_key=os.environ.get("APP_SECRET_KEY", "dev-secret-change-me"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
+@app.on_event("startup")
+def _ensure_schema():
+    """Create the database schema on boot so no request can race ahead of it."""
+    try:
+        db.init_schema()
+        log.info("schema initialized")
+    except Exception:
+        log.exception("schema init on startup failed (will retry lazily)")
 
 
 # --- helpers ------------------------------------------------------------
