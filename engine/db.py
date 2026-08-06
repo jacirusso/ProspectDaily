@@ -114,6 +114,7 @@ def init_schema() -> None:
             plan             TEXT NOT NULL DEFAULT '',
             stripe_customer_id TEXT NOT NULL DEFAULT '',
             client_folder_url TEXT NOT NULL DEFAULT '',
+            apollo_api_key   TEXT NOT NULL DEFAULT '',
             access_expires_at {ts} NOT NULL DEFAULT 0,
             generating_since {ts} NOT NULL DEFAULT 0,
             created_at       {ts} NOT NULL,
@@ -164,6 +165,7 @@ def init_schema() -> None:
         "ALTER TABLE customers ADD COLUMN client_folder_url TEXT NOT NULL DEFAULT ''",
         f"ALTER TABLE customers ADD COLUMN access_expires_at {ts} NOT NULL DEFAULT 0",
         f"ALTER TABLE customers ADD COLUMN generating_since {ts} NOT NULL DEFAULT 0",
+        "ALTER TABLE customers ADD COLUMN apollo_api_key TEXT NOT NULL DEFAULT ''",
     ]
     conn = _connect_raw()
     try:

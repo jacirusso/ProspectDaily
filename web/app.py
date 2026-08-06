@@ -214,9 +214,11 @@ def audience_form(request: Request):
 
 @app.post("/audience", response_class=HTMLResponse)
 def audience_run(request: Request, website: str = Form(...), offer: str = Form("")):
-    require_user(request)
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
     try:
-        result = audience_builder.build(website.strip(), offer.strip())
+        result = audience_builder.build(website.strip(), offer.strip(),
+                                        apollo_key=customer.get("apollo_api_key", ""))
     except Exception:
         log.exception("audience build failed")
         return render(request, "audience.html", result=None, website=website,
@@ -296,6 +298,7 @@ def dashboard(request: Request):
                   customer=customer, runs=runs, plan=plan,
                   total_delivered=dedupe.total_delivered(user["id"]),
                   generating=generating,
+                  has_apollo=bool(customer.get("apollo_api_key")),
                   has_answers=bool(customer["answers"]))
 
 
@@ -304,6 +307,18 @@ def set_folder(request: Request, folder_id: str = Form("")):
     user = require_user(request)
     store.update_customer(user["id"], folder_id=folder_id.strip())
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@app.post("/settings/apollo")
+def set_apollo(request: Request, apollo_key: str = Form("")):
+    user = require_user(request)
+    key = apollo_key.strip()
+    if key:
+        from engine.providers.apollo import validate_key
+        if not validate_key(key):
+            return RedirectResponse("/dashboard?apollo=invalid", status_code=303)
+    store.update_customer(user["id"], apollo_api_key=key)
+    return RedirectResponse("/dashboard?apollo=saved", status_code=303)
 
 
 # --- billing / plans ----------------------------------------------------
@@ -401,7 +416,8 @@ def _generate_report_bg(user_id: str):
     try:
         result = run_for_customer(
             user_id, customer["answers"], folder_id=customer["folder_id"],
-            ordered=customer["ordered_per_day"], run_date=today)
+            ordered=customer["ordered_per_day"],
+            apollo_key=customer.get("apollo_api_key", ""), run_date=today)
         store.log_run(user_id, today, result.ordered, result.delivered,
                       result.csv_path, result.sheet_url)
         if result.folder_url:
@@ -426,6 +442,8 @@ def run_now(request: Request, background_tasks: BackgroundTasks):
     customer = store.get_customer(user["id"])
     if not customer["answers"]:
         raise HTTPException(400, "Complete the questionnaire first.")
+    if config.DATA_PROVIDER.lower() == "apollo" and not customer.get("apollo_api_key"):
+        return RedirectResponse("/dashboard?apollo=needed", status_code=303)
     # Don't start a second run while one is already in progress (< 10 min old).
     gen = customer.get("generating_since") or 0
     if not (gen and time.time() - gen < 600):

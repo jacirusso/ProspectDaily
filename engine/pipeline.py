@@ -37,6 +37,7 @@ def run_for_customer(customer_id: str, answers: dict,
                      folder_id: str = "",
                      run_date: Optional[str] = None,
                      ordered: Optional[int] = None,
+                     apollo_key: str = "",
                      provider=None) -> RunResult:
     run_date = run_date or date.today().isoformat()
     # `ordered` (from the customer's plan) wins; else fall back to the answer.
@@ -46,7 +47,14 @@ def run_for_customer(customer_id: str, answers: dict,
 
     spec = spec_from_answers(answers)
     already = dedupe.seen_keys(customer_id)
-    provider = provider or get_provider()
+    if provider is None:
+        # BYO-key: in Apollo mode the customer must supply their own key (we
+        # never use one account's data for another — that would be reselling).
+        if config.DATA_PROVIDER.lower() == "apollo" and not apollo_key:
+            raise RuntimeError(
+                "No Apollo account connected. Add your Apollo API key to receive "
+                "prospects.")
+        provider = get_provider(api_key=apollo_key)
 
     # 1. Find fresh prospects, excluding everyone already delivered.
     prospects = provider.find(spec, limit=target, exclude_keys=already)

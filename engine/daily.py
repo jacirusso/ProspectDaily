@@ -33,6 +33,7 @@ def run_all(run_date: str = None) -> dict:
                 c["id"], c["answers"],
                 folder_id=c.get("folder_id", ""),
                 ordered=c.get("ordered_per_day", 10),
+                apollo_key=c.get("apollo_api_key", ""),
                 run_date=run_date)
             store.log_run(c["id"], run_date, result.ordered, result.delivered,
                           result.csv_path, result.sheet_url)

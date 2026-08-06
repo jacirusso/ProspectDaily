@@ -180,16 +180,17 @@ def _spec_from_segment(seg: dict) -> SearchSpec:
     )
 
 
-def pool_count(seg: dict) -> int:
+def pool_count(seg: dict, api_key: str = "") -> int:
     """Approx. number of matching prospects Apollo has (free; no reveal credits).
-    Returns -1 if unavailable (e.g., mock mode or API error)."""
-    if config.DATA_PROVIDER.lower() != "apollo" or not config.APOLLO_API_KEY:
+    Uses the customer's own Apollo key. Returns -1 if unavailable."""
+    key = api_key or config.APOLLO_API_KEY
+    if config.DATA_PROVIDER.lower() != "apollo" or not key:
         return -1
     from .providers.apollo import _post, ApolloError
     spec = _spec_from_segment(seg)
     params = spec_to_apollo_params(spec, page=1, per_page=1)
     try:
-        resp = _post("/mixed_people/api_search", params)
+        resp = _post("/mixed_people/api_search", params, key)
     except ApolloError:
         return -1
     # api_search returns the match count at the TOP LEVEL as total_entries.
@@ -201,7 +202,7 @@ def pool_count(seg: dict) -> int:
     return int(total)
 
 
-def build(url: str, offer_hint: str = "") -> dict:
+def build(url: str, offer_hint: str = "", apollo_key: str = "") -> dict:
     """Full flow: returns {site_chars, company:{...}, segments:[...with pool...]}.
     Returns {"insufficient": True} when the site couldn't be read AND no
     description was given — so we never invent a generic audience."""
@@ -212,7 +213,7 @@ def build(url: str, offer_hint: str = "") -> dict:
     analysis = propose_segments(site, offer_hint)
     segments = analysis["segments"]
     for s in segments:
-        s["pool"] = pool_count(s)
+        s["pool"] = pool_count(s, apollo_key)
     segments.sort(key=lambda s: (s.get("fit_score", 0)), reverse=True)
     return {"site_chars": len(site), "company": analysis["company"],
             "segments": segments}

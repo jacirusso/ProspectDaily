@@ -34,13 +34,13 @@ class ApolloError(RuntimeError):
     pass
 
 
-def _post(path: str, body: dict) -> dict:
+def _post(path: str, body: dict, api_key: str) -> dict:
     url = f"{config.APOLLO_BASE_URL}{path}"
     data = json.dumps(body).encode()
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
     req.add_header("Cache-Control", "no-cache")
-    req.add_header("X-Api-Key", config.APOLLO_API_KEY)
+    req.add_header("X-Api-Key", api_key)
     try:
         with urllib.request.urlopen(req, timeout=45) as resp:
             return json.loads(resp.read().decode())
@@ -106,10 +106,11 @@ def _apply_enrichment(p: Prospect, person: dict) -> None:
 
 
 class ApolloProvider(ProspectProvider):
-    def __init__(self, reveal_email: Optional[bool] = None,
+    def __init__(self, api_key: str, reveal_email: Optional[bool] = None,
                  reveal_phone: Optional[bool] = None):
-        if not config.APOLLO_API_KEY:
-            raise ApolloError("APOLLO_API_KEY is not set.")
+        if not api_key:
+            raise ApolloError("No Apollo API key provided for this customer.")
+        self.api_key = api_key
         self.reveal_email = (config.APOLLO_REVEAL_EMAIL
                              if reveal_email is None else reveal_email)
         self.reveal_phone = (config.APOLLO_REVEAL_PHONE
@@ -145,7 +146,7 @@ class ApolloProvider(ProspectProvider):
         page = 1
         while len(candidates) < want and page <= 25:
             params = spec_to_apollo_params(spec, page=page, per_page=100)
-            resp = _post("/mixed_people/api_search", params)
+            resp = _post("/mixed_people/api_search", params, self.api_key)
             people = resp.get("people") or []
             if not people:
                 break
@@ -187,7 +188,7 @@ class ApolloProvider(ProspectProvider):
             body["reveal_phone_number"] = True
             body["webhook_url"] = config.APOLLO_PHONE_WEBHOOK_URL
         try:
-            resp = _post("/people/match", body)
+            resp = _post("/people/match", body, self.api_key)
         except ApolloError:
             return False
         person = resp.get("person") or {}
@@ -197,9 +198,24 @@ class ApolloProvider(ProspectProvider):
         return True
 
 
-def get_provider() -> ProspectProvider:
-    """Factory: returns the configured provider (mock or apollo)."""
+def validate_key(api_key: str) -> bool:
+    """Return True if the Apollo key works (a cheap 1-result search)."""
+    if not api_key:
+        return False
+    try:
+        _post("/mixed_people/api_search",
+              {"person_titles": ["CEO"], "page": 1, "per_page": 1}, api_key)
+        return True
+    except ApolloError:
+        return False
+
+
+def get_provider(api_key: Optional[str] = None) -> ProspectProvider:
+    """Factory. In apollo mode, uses the given per-customer key (falling back to
+    the global key only for operator CLI/testing). Otherwise the mock provider."""
     if config.DATA_PROVIDER.lower() == "apollo":
-        return ApolloProvider()
+        key = api_key or config.APOLLO_API_KEY
+        if key:
+            return ApolloProvider(key)
     from .mock import MockProvider
     return MockProvider()

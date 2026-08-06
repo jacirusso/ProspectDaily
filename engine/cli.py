@@ -59,7 +59,7 @@ def main(argv=None):
         return 2
 
     result = run_for_customer(customer, answers, folder_id=args.folder,
-                              run_date=args.date)
+                              apollo_key=config.APOLLO_API_KEY, run_date=args.date)
 
     print("=" * 70)
     print(f"Customer:            {result.customer_id}")
