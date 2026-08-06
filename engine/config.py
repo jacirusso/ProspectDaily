@@ -150,9 +150,10 @@ APOLLO_CREDIT_ALERT_PCT = float(_get("APOLLO_CREDIT_ALERT_PCT", "0.8"))
 # Admin cost tracker estimates (all in USD/month).
 MONTHLY_FIXED_COST = float(_get("MONTHLY_FIXED_COST", "70"))        # Render+domain
 CLAUDE_COST_PER_10_PER_MONTH = float(_get("CLAUDE_COST_PER_10_PER_MONTH", "3"))
-# Wholesale data cost per DELIVERED prospect record (set to the PDL rate we
-# confirm — retail ~0.28, volume ~0.20). Drives the admin margin tracker.
-DATA_COST_PER_RECORD = float(_get("DATA_COST_PER_RECORD", "0.25"))
+# Wholesale data cost per DELIVERED prospect record. PDL (call 2026-08-06):
+# 20-24c/record on annual, email+phone included in the base credit. Using the
+# annual list midpoint; first year is ~30% less with Amanda's promo code.
+DATA_COST_PER_RECORD = float(_get("DATA_COST_PER_RECORD", "0.22"))
 STRIPE_PCT = 0.029
 STRIPE_FLAT = 0.30
 
