@@ -6,6 +6,20 @@
 <p class="muted">Fresh prospects delivered every weekday. Cancel anytime.
   {% if not stripe_enabled %}<em>(Billing is in test mode — selecting a plan activates it immediately.)</em>{% endif %}</p>
 
+<div class="card" style="margin-top:18px">
+  <form method="post" action="/redeem" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+    <label style="flex:1;min-width:220px;margin:0">Have a promo code?
+      <input type="text" name="code" placeholder="Enter code">
+    </label>
+    <button class="btn secondary" type="submit">Redeem</button>
+  </form>
+  {% if request.query_params.get('promo') == 'invalid' %}
+    <p class="error" style="margin:10px 0 0">That code isn't valid.</p>
+  {% elif request.query_params.get('promo') == 'used' %}
+    <p class="error" style="margin:10px 0 0">That code has already been used.</p>
+  {% endif %}
+</div>
+
 <div class="pricing-grid" style="margin-top:24px">
   {% for p in plans %}
   <div class="price-card {% if p.best_value %}featured{% endif %}">

@@ -73,11 +73,25 @@ def get_customer_by_stripe_id(stripe_customer_id: str) -> Optional[Dict]:
 
 
 def active_customers() -> List[Dict]:
+    """Active customers whose access hasn't expired (0 = no expiry)."""
     db.init_schema()
-    rows = db.query("SELECT * FROM customers WHERE status = 'active'")
+    rows = db.query(
+        "SELECT * FROM customers WHERE status = 'active' "
+        "AND (access_expires_at = 0 OR access_expires_at > ?)", (int(time.time()),))
     for d in rows:
         d["answers"] = json.loads(d.get("answers_json") or "{}")
     return rows
+
+
+def claim_promo(code: str, customer_id: str) -> bool:
+    """Atomically claim a single-use promo code. Returns True only for the first
+    claim; False if the code was already redeemed by anyone."""
+    db.init_schema()
+    n = db.execute(
+        "INSERT INTO promo_redemptions (code, customer_id, redeemed_at) "
+        "VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+        (code, customer_id, int(time.time())))
+    return n > 0
 
 
 # --- Runs ---------------------------------------------------------------

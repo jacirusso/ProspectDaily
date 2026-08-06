@@ -7,6 +7,7 @@ Run locally:
 """
 import logging
 import os
+import time
 from datetime import date
 
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -19,7 +20,7 @@ from engine import config, db
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe, audience_builder
-from web import store, security, plans, billing, emails
+from web import store, security, plans, billing, emails, promos
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -249,6 +250,23 @@ def choose_plan(request: Request, plan_key: str = Form(...)):
     store.update_customer(user["id"], plan=plan["key"],
                           ordered_per_day=plan["ordered"], status="active")
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@app.post("/redeem")
+def redeem(request: Request, code: str = Form("")):
+    user = require_user(request)
+    promo = promos.lookup(code)
+    if not promo:
+        return RedirectResponse("/plans?promo=invalid", status_code=303)
+    code_l = code.strip().lower()
+    if not store.claim_promo(code_l, user["id"]):
+        return RedirectResponse("/plans?promo=used", status_code=303)
+    expires = (int(time.time()) + promo["days"] * 86400) if promo.get("days") else 0
+    store.update_customer(user["id"], status="active", plan=f"promo:{code_l}",
+                          ordered_per_day=promo["ordered_per_day"],
+                          access_expires_at=expires)
+    log.info("promo %s redeemed by %s", code_l, user["email"])
+    return RedirectResponse("/dashboard?welcome=1", status_code=303)
 
 
 @app.post("/stripe/webhook")

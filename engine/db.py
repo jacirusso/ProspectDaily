@@ -114,8 +114,14 @@ def init_schema() -> None:
             plan             TEXT NOT NULL DEFAULT '',
             stripe_customer_id TEXT NOT NULL DEFAULT '',
             client_folder_url TEXT NOT NULL DEFAULT '',
+            access_expires_at {ts} NOT NULL DEFAULT 0,
             created_at       {ts} NOT NULL,
             updated_at       {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS promo_redemptions (
+            code          TEXT PRIMARY KEY,
+            customer_id   TEXT NOT NULL,
+            redeemed_at   {ts} NOT NULL
         )""",
         f"""CREATE TABLE IF NOT EXISTS runs (
             id           TEXT PRIMARY KEY,
@@ -149,6 +155,7 @@ def init_schema() -> None:
     # Best-effort migrations for columns added after a table already existed.
     migrations = [
         "ALTER TABLE customers ADD COLUMN client_folder_url TEXT NOT NULL DEFAULT ''",
+        f"ALTER TABLE customers ADD COLUMN access_expires_at {ts} NOT NULL DEFAULT 0",
     ]
     conn = _connect_raw()
     try:
