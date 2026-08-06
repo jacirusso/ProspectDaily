@@ -350,6 +350,16 @@ def download(request: Request, run_id: str):
     raise HTTPException(404, "Report not found")
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy(request: Request):
+    return render(request, "privacy.html")
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms(request: Request):
+    return render(request, "terms.html")
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True}

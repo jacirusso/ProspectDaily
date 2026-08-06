@@ -122,6 +122,13 @@ def send_first_report(customer, folder_url=""):
     return _send_once(customer, "first_report", s, h)
 
 
+def alert_operator(subject: str, body_html: str):
+    """Send an operational alert to the operator (failed runs, low credits)."""
+    from engine import config, emailer
+    html = _wrap(subject, f"<h2 style='margin:0 0 12px;'>{subject}</h2>{body_html}")
+    emailer.send(config.OPERATOR_EMAIL, f"[ProspectDaily] {subject}", html)
+
+
 def run_lifecycle():
     """Called by the daily job: send day-1 nudges and day-4 tips as due."""
     now = int(time.time())

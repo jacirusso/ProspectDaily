@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy · ProspectDaily{% endblock %}
+{% block body %}
+<div class="card" style="max-width:760px;margin:0 auto;line-height:1.6;">
+  <h1>Privacy Policy</h1>
+  <p class="muted">Last updated: August 5, 2026</p>
+
+  <p>ProspectDaily ("we", "us") provides a B2B prospecting service that delivers
+  business contact information and outreach content to our customers. This policy
+  explains what we collect and how we use it.</p>
+
+  <h2>Information we collect</h2>
+  <ul>
+    <li><strong>Account information</strong> — your email address and password (stored hashed).</li>
+    <li><strong>Targeting details</strong> — the answers you provide about your target audience, your company, and your outreach (used to find prospects and write intro emails).</li>
+    <li><strong>Payment information</strong> — processed by our payment provider, Stripe. We do not store your full card details.</li>
+    <li><strong>Google authorization</strong> — if you connect Google Drive, we receive a limited token that lets us create report files in a folder for you. We use the <code>drive.file</code> scope, which only allows access to files our app creates — never the rest of your Drive.</li>
+    <li><strong>Usage data</strong> — basic logs (e.g., report runs) to operate and support the service.</li>
+  </ul>
+
+  <h2>Prospect (business contact) data</h2>
+  <p>The prospects we deliver are business professionals' work contact details
+  sourced from third-party B2B data providers. This data is provided to you for
+  legitimate business-to-business outreach. You are responsible for using it in
+  compliance with applicable laws (see our Terms).</p>
+
+  <h2>How we use your information</h2>
+  <p>To provide and improve the service: find and enrich prospects, generate
+  intro emails, deliver daily reports, process billing, send service and
+  onboarding emails, and provide support.</p>
+
+  <h2>Service providers we share with</h2>
+  <p>We share the minimum necessary data with providers that help us operate:
+  <strong>Apollo.io</strong> (prospect data), <strong>Anthropic</strong> (AI email
+  writing), <strong>Google</strong> (report delivery to your Drive),
+  <strong>Stripe</strong> (payments), <strong>Resend</strong> (transactional
+  email), and <strong>Render</strong> (hosting). We do not sell your personal
+  information.</p>
+
+  <h2>Data retention & security</h2>
+  <p>We retain your account and delivery history while your account is active.
+  Data is stored on secured, access-controlled infrastructure. No method of
+  transmission or storage is 100% secure.</p>
+
+  <h2>Your choices</h2>
+  <p>You can update your targeting anytime, cancel your subscription, and request
+  access to or deletion of your account data by emailing us.</p>
+
+  <h2>Cookies</h2>
+  <p>We use a single signed session cookie to keep you logged in. We do not use
+  third-party advertising cookies.</p>
+
+  <h2>Changes</h2>
+  <p>We may update this policy; material changes will be reflected by the date above.</p>
+
+  <h2>Contact</h2>
+  <p>Questions? Email <a href="mailto:hello@prospectdaily.com">hello@prospectdaily.com</a>.</p>
+</div>
+{% endblock %}

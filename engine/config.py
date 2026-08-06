@@ -132,6 +132,14 @@ def delivery_split(ordered: int) -> dict:
 # distinct companies). Enforced pre-enrichment so we don't waste credits.
 MAX_PER_COMPANY = int(_get("MAX_PER_COMPANY", "1") or "1")
 
+# --- Operations / alerts -------------------------------------------------
+# Where operational alerts (failed runs, low Apollo credits) are emailed.
+OPERATOR_EMAIL = _get("OPERATOR_EMAIL", "jaci@brandstateu.com")
+# Rough monthly Apollo credit budget (30k/yr ≈ 2500/mo). We estimate usage as
+# "prospects delivered this month" (~1 credit each) and alert past ALERT_PCT.
+APOLLO_MONTHLY_CREDITS = int(_get("APOLLO_MONTHLY_CREDITS", "2500"))
+APOLLO_CREDIT_ALERT_PCT = float(_get("APOLLO_CREDIT_ALERT_PCT", "0.8"))
+
 # Delivery runs on WEEKDAYS ONLY (the cron is Mon–Fri). ~22 business days/month
 # is used for the "per month" figures shown to customers.
 WEEKDAYS_PER_MONTH = 22

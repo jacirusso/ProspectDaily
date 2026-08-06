@@ -83,6 +83,15 @@ def active_customers() -> List[Dict]:
     return rows
 
 
+def prospects_delivered_since(epoch_start: int) -> int:
+    """Count prospects delivered since a time (≈ Apollo credits used)."""
+    db.init_schema()
+    row = db.query_one(
+        "SELECT COUNT(*) AS n FROM delivered_prospects WHERE delivered_at >= ?",
+        (epoch_start,))
+    return int(row["n"]) if row else 0
+
+
 def claim_promo(code: str, customer_id: str) -> bool:
     """Atomically claim a single-use promo code. Returns True only for the first
     claim; False if the code was already redeemed by anyone."""
