@@ -81,6 +81,22 @@ def handle_webhook(payload: bytes, sig_header: str) -> str:
     return "ignored"
 
 
+def change_plan(customer: dict, plan: dict) -> None:
+    """Modify the customer's active Stripe subscription to a new plan's price
+    (Stripe prorates the difference automatically)."""
+    stripe = _stripe()
+    subs = stripe.Subscription.list(customer=customer["stripe_customer_id"],
+                                    status="active", limit=1)
+    data = subs.get("data", [])
+    if not data:
+        raise RuntimeError("No active subscription to modify.")
+    sub = data[0]
+    item_id = sub["items"]["data"][0]["id"]
+    stripe.Subscription.modify(
+        sub["id"], items=[{"id": item_id, "price": plans.stripe_price_id(plan)}],
+        proration_behavior="create_prorations")
+
+
 def cancel_subscription_for(customer: dict) -> None:
     """Cancel the customer's Stripe subscription at period end, if any."""
     if not plans.stripe_enabled() or not customer.get("stripe_customer_id"):

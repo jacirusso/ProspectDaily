@@ -292,10 +292,13 @@ def dashboard(request: Request):
     customer = store.get_customer(user["id"])
     runs = store.recent_runs(user["id"])
     plan = plans.by_key(customer["plan"]) if customer["plan"] else None
+    is_promo = (customer["plan"] or "").startswith("promo:")
+    upgrades = [p for p in plans.PLANS if p["ordered"] > customer["ordered_per_day"]]
     gen = customer.get("generating_since") or 0
     generating = bool(gen and time.time() - gen < 600)
     return render(request, "dashboard.html",
                   customer=customer, runs=runs, plan=plan,
+                  is_promo=is_promo, upgrades=upgrades,
                   total_delivered=dedupe.total_delivered(user["id"]),
                   generating=generating,
                   has_apollo=bool(customer.get("apollo_api_key")),
@@ -347,6 +350,36 @@ def choose_plan(request: Request, plan_key: str = Form(...)):
     store.update_customer(user["id"], plan=plan["key"],
                           ordered_per_day=plan["ordered"], status="active")
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@app.post("/upgrade")
+def upgrade(request: Request, plan_key: str = Form(...)):
+    user = require_user(request)
+    plan = plans.by_key(plan_key)
+    if not plan:
+        raise HTTPException(400, "Unknown plan")
+    customer = store.get_customer(user["id"])
+    # Existing paying subscriber → modify their subscription in place (prorated).
+    if plans.stripe_enabled() and customer.get("stripe_customer_id"):
+        try:
+            billing.change_plan(customer, plan)
+            store.update_customer(user["id"], plan=plan["key"],
+                                  ordered_per_day=plan["ordered"])
+            return RedirectResponse("/dashboard?upgraded=1", status_code=303)
+        except Exception:
+            log.exception("plan change failed")
+            return RedirectResponse("/plans", status_code=303)
+    # No active subscription (promo/dev) → go through normal checkout to start paying.
+    if plans.stripe_enabled():
+        try:
+            return RedirectResponse(billing.create_checkout_url(user, plan),
+                                    status_code=303)
+        except Exception:
+            log.exception("upgrade checkout failed")
+            return RedirectResponse("/plans", status_code=303)
+    store.update_customer(user["id"], plan=plan["key"],
+                          ordered_per_day=plan["ordered"], status="active")
+    return RedirectResponse("/dashboard?upgraded=1", status_code=303)
 
 
 @app.post("/redeem")

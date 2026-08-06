@@ -73,6 +73,32 @@
   {% endif %}
 </div>
 
+{% if customer.status == 'active' %}
+<div class="card">
+  <h2>Your plan</h2>
+  {% if request.query_params.get('upgraded') == '1' %}
+    <div class="pill ok" style="display:block;padding:8px 12px;margin-bottom:10px">Plan updated ✓</div>
+  {% endif %}
+  {% if is_promo %}
+    <p class="muted">You're on a <strong>free promo</strong> — {{ customer.ordered_per_day }} prospects/day. Upgrade to a paid plan anytime to add volume.</p>
+  {% elif plan %}
+    <p class="muted">Current plan: <strong>{{ plan.name }}</strong> — ${{ plan.price }}/mo · {{ plan.ordered }} prospects every weekday.</p>
+  {% endif %}
+  {% if upgrades %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      {% for u in upgrades %}
+      <form method="post" action="/upgrade">
+        <input type="hidden" name="plan_key" value="{{ u.key }}">
+        <button class="btn small" type="submit">⬆ Upgrade to {{ u.name }} — ${{ u.price }}/mo ({{ u.ordered }}/day)</button>
+      </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">You're on our top plan. 🎉</p>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card">
   <h2>Your Google Drive folder</h2>
   {% if customer.client_folder_url %}
