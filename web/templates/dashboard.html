@@ -69,10 +69,15 @@
 
 <div class="card">
   <h2>Reports</h2>
-  {% if has_answers %}
+  {% if generating %}
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:16px;color:#1e40af">
+      ⏳ <strong>Your report is generating…</strong> This takes a couple of minutes.
+      Refresh this page shortly — it'll appear below and in your Drive folder.
+    </div>
+  {% elif has_answers %}
     <form method="post" action="/run-now" style="margin-bottom:16px">
       <button class="btn" type="submit">Generate today's report now</button>
-      <span class="muted">Runs the pipeline immediately (great for testing).</span>
+      <span class="muted">Takes ~2–3 minutes.</span>
     </form>
   {% endif %}
   {% if runs %}

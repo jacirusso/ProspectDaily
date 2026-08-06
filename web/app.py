@@ -10,7 +10,7 @@ import os
 import time
 from datetime import date
 
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -290,9 +290,12 @@ def dashboard(request: Request):
     customer = store.get_customer(user["id"])
     runs = store.recent_runs(user["id"])
     plan = plans.by_key(customer["plan"]) if customer["plan"] else None
+    gen = customer.get("generating_since") or 0
+    generating = bool(gen and time.time() - gen < 600)
     return render(request, "dashboard.html",
                   customer=customer, runs=runs, plan=plan,
                   total_delivered=dedupe.total_delivered(user["id"]),
+                  generating=generating,
                   has_answers=bool(customer["answers"]))
 
 
@@ -390,34 +393,45 @@ def account_cancel(request: Request):
 
 
 # --- run a report now ---------------------------------------------------
-@app.post("/run-now")
-def run_now(request: Request):
-    user = require_user(request)
-    customer = store.get_customer(user["id"])
-    if not customer["answers"]:
-        raise HTTPException(400, "Complete the questionnaire first.")
+def _generate_report_bg(user_id: str):
+    """Generate a report in the background so the HTTP request returns instantly
+    (report generation takes minutes and would otherwise time out at the proxy)."""
     today = date.today().isoformat()
+    customer = store.get_customer(user_id)
     try:
         result = run_for_customer(
-            user["id"], customer["answers"],
-            folder_id=customer["folder_id"],
-            ordered=customer["ordered_per_day"],
-            run_date=today)
-        store.log_run(user["id"], today, result.ordered, result.delivered,
+            user_id, customer["answers"], folder_id=customer["folder_id"],
+            ordered=customer["ordered_per_day"], run_date=today)
+        store.log_run(user_id, today, result.ordered, result.delivered,
                       result.csv_path, result.sheet_url)
         if result.folder_url:
-            store.update_customer(user["id"], client_folder_url=result.folder_url)
+            store.update_customer(user_id, client_folder_url=result.folder_url)
         if result.delivered:
             try:
-                emails.send_first_report(store.get_customer(user["id"]),
+                emails.send_first_report(store.get_customer(user_id),
                                          result.folder_url or "")
             except Exception:
                 log.exception("first-report email failed")
     except Exception as e:
-        log.exception("run-now failed for %s", user["id"])
-        store.log_run(user["id"], today, customer["ordered_per_day"], 0,
-                      None, None, status="error", error=str(e)[:500])
-    return RedirectResponse("/dashboard", status_code=303)
+        log.exception("run-now failed for %s", user_id)
+        store.log_run(user_id, today, customer["ordered_per_day"], 0, None, None,
+                      status="error", error=str(e)[:500])
+    finally:
+        store.update_customer(user_id, generating_since=0)
+
+
+@app.post("/run-now")
+def run_now(request: Request, background_tasks: BackgroundTasks):
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
+    if not customer["answers"]:
+        raise HTTPException(400, "Complete the questionnaire first.")
+    # Don't start a second run while one is already in progress (< 10 min old).
+    gen = customer.get("generating_since") or 0
+    if not (gen and time.time() - gen < 600):
+        store.update_customer(user["id"], generating_since=int(time.time()))
+        background_tasks.add_task(_generate_report_bg, user["id"])
+    return RedirectResponse("/dashboard?generating=1", status_code=303)
 
 
 @app.get("/download/{run_id}")

@@ -115,6 +115,7 @@ def init_schema() -> None:
             stripe_customer_id TEXT NOT NULL DEFAULT '',
             client_folder_url TEXT NOT NULL DEFAULT '',
             access_expires_at {ts} NOT NULL DEFAULT 0,
+            generating_since {ts} NOT NULL DEFAULT 0,
             created_at       {ts} NOT NULL,
             updated_at       {ts} NOT NULL
         )""",
@@ -162,6 +163,7 @@ def init_schema() -> None:
     migrations = [
         "ALTER TABLE customers ADD COLUMN client_folder_url TEXT NOT NULL DEFAULT ''",
         f"ALTER TABLE customers ADD COLUMN access_expires_at {ts} NOT NULL DEFAULT 0",
+        f"ALTER TABLE customers ADD COLUMN generating_since {ts} NOT NULL DEFAULT 0",
     ]
     conn = _connect_raw()
     try:
