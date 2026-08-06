@@ -48,18 +48,40 @@ def _get(url: str, timeout: int = 20) -> str:
         return r.read().decode("utf-8", errors="replace")
 
 
+def _candidate_bases(url: str):
+    """URLs to try, including the www/non-www variant (many domains only
+    resolve one way — e.g. brandstateu.com fails, www.brandstateu.com works)."""
+    from urllib.parse import urlparse
+    if not url.startswith("http"):
+        url = "https://" + url
+    p = urlparse(url)
+    host = p.netloc
+    hosts = [host, host[4:] if host.startswith("www.") else "www." + host]
+    out, seen = [], set()
+    for h in hosts:
+        base = f"{p.scheme}://{h}"
+        if h and base not in seen:
+            seen.add(base)
+            out.append(base)
+    return out
+
+
 def fetch_site(url: str, max_chars: int = 6000) -> str:
-    """Readable text from the homepage, plus /about if the homepage is thin."""
-    text = ""
-    try:
-        text = _strip_html(_get(url))
-    except Exception:
-        pass
-    if len(text) < 1500:
-        base = url.rstrip("/")
-        for path in ("/about", "/about-us", "/what-we-do"):
+    """Readable text from the homepage (trying www variants), plus /about pages
+    if the homepage is thin. Returns '' if the site can't be read."""
+    text, root = "", None
+    for base in _candidate_bases(url):
+        try:
+            candidate = _strip_html(_get(base))
+        except Exception:
+            continue
+        if len(candidate) >= 300:
+            text, root = candidate, base
+            break
+    if root and len(text) < 1500:
+        for path in ("/about", "/about-us", "/what-we-do", "/services"):
             try:
-                text += " " + _strip_html(_get(base + path))
+                text += " " + _strip_html(_get(root + path))
             except Exception:
                 continue
             if len(text) > 2500:
@@ -175,8 +197,13 @@ def pool_count(seg: dict) -> int:
 
 
 def build(url: str, offer_hint: str = "") -> dict:
-    """Full flow: returns {site_chars, company:{...}, segments:[...with pool...]}."""
+    """Full flow: returns {site_chars, company:{...}, segments:[...with pool...]}.
+    Returns {"insufficient": True} when the site couldn't be read AND no
+    description was given — so we never invent a generic audience."""
     site = fetch_site(url)
+    if len(site) < 300 and len(offer_hint.strip()) < 40:
+        return {"insufficient": True, "site_chars": len(site),
+                "company": {}, "segments": []}
     analysis = propose_segments(site, offer_hint)
     segments = analysis["segments"]
     for s in segments:

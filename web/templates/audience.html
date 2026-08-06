@@ -21,7 +21,18 @@
   </form>
 </div>
 
-{% if result %}
+{% if result and result.insufficient %}
+  <div class="card">
+    <div class="error">We couldn't read enough from that website to build your audiences.</div>
+    <p class="muted">Some sites block automated reading, or are built in tools that hide
+      their text from bots. Two easy fixes:</p>
+    <ul>
+      <li>Try a more specific URL — like your <strong>About</strong> page (e.g. <code>yoursite.com/about</code>)</li>
+      <li>Or write a few sentences about <strong>what you sell and who you sell to</strong>
+        in the box above, then hit Analyze again — we'll build from that.</li>
+    </ul>
+  </div>
+{% elif result %}
   <div class="card">
     <h2>Here's what we found{% if result.company.name %} for {{ result.company.name }}{% endif %}</h2>
     {% if result.company.sells %}<p class="muted">{{ result.company.sells }}</p>{% endif %}
