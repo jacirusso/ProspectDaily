@@ -23,12 +23,14 @@ COLUMNS = [
 
 
 def rows_from(prospects) -> List[List[str]]:
-    """Header row followed by one row per prospect, in COLUMNS order."""
-    header = [label for _, label in COLUMNS]
+    """Header row followed by one row per prospect, in COLUMNS order, with a
+    leading Group column (Your prospects / Bonus / Spare)."""
+    header = ["Group"] + [label for _, label in COLUMNS]
     body = []
     for p in prospects:
         d = p.to_dict()
-        body.append([str(d.get(key, "") or "") for key, _ in COLUMNS])
+        group = TIER_LABEL.get(d.get("tier") or "core", "")
+        body.append([group] + [str(d.get(key, "") or "") for key, _ in COLUMNS])
     return [header] + body
 
 
@@ -37,10 +39,18 @@ def _esc(s: str) -> str:
             .replace(">", "&gt;"))
 
 
-# Brand palette for the Doc layout.
-_INK = "#1a1c23"; _MUTED = "#6b7280"; _BRAND = "#4f46e5"
+# Brand palette for the Doc layout (blue/green brand).
+_INK = "#1a1c23"; _MUTED = "#6b7280"; _BRAND = "#2563eb"; _GREEN = "#059669"
 _CARD_BORDER = "#e5e7eb"; _DESC_BG = "#f3f4f6"
-_FIT_BG = "#ecfdf5"; _FIT_INK = "#047857"; _EMAIL_BG = "#eef2ff"
+_FIT_BG = "#ecfdf5"; _FIT_INK = "#047857"; _EMAIL_BG = "#eff6ff"
+
+# Report section labels (core / bonus / spare).
+_SECTIONS = {
+    "core":  ("Your prospects", "Matched to your target audience.", _BRAND),
+    "bonus": ("★ Bonus prospects", "Extra qualified prospects — included free, so you always have plenty.", _GREEN),
+    "spare": ("↻ Spare prospects", "Swap-ins: use these to replace any prospect above that isn't a fit or has incomplete/incorrect info.", _MUTED),
+}
+TIER_LABEL = {"core": "Your prospects", "bonus": "Bonus", "spare": "Spare"}
 
 
 def _contact_line(icon: str, label: str, value: str, link: bool = False) -> str:
@@ -57,15 +67,28 @@ def _contact_line(icon: str, label: str, value: str, link: bool = False) -> str:
 def html_report(prospects, heading: str) -> str:
     """A polished, document-style layout: one styled 'card' per prospect.
     Uploaded to Drive as a Google Doc (an alternative to the spreadsheet)."""
+    counts = {}
+    for p in prospects:
+        counts[p.tier or "core"] = counts.get(p.tier or "core", 0) + 1
+    breakdown = " + ".join(
+        f"{counts[t]} {TIER_LABEL[t].lower()}" for t in ("core", "bonus", "spare")
+        if counts.get(t))
     parts = [
         f'<p style="color:{_MUTED};font-size:10pt;letter-spacing:1px;">'
         f'PROSPECTDAILY</p>',
         f'<h1 style="color:{_INK};font-size:22pt;margin:0;">{_esc(heading)}</h1>',
         f'<p style="color:{_BRAND};font-weight:bold;font-size:12pt;">'
-        f'{len(prospects)} qualified prospects</p>',
+        f'{len(prospects)} prospects &nbsp;·&nbsp; <span style="color:{_MUTED};font-weight:normal;">{breakdown}</span></p>',
         f'<hr style="border:none;border-top:3px solid {_BRAND};">',
     ]
+    last_tier = None
     for i, p in enumerate(prospects, 1):
+        if (p.tier or "core") != last_tier:
+            last_tier = p.tier or "core"
+            title, sub, color = _SECTIONS.get(last_tier, ("Prospects", "", _INK))
+            parts.append(
+                f'<p style="margin:22px 0 2px;font-size:15pt;font-weight:bold;color:{color};">{title}</p>'
+                f'<p style="margin:0 0 10px;color:{_MUTED};font-size:10pt;">{sub}</p>')
         d = p.to_dict()
         meta = []
         if d.get("employee_count"):

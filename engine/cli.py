@@ -63,8 +63,10 @@ def main(argv=None):
 
     print("=" * 70)
     print(f"Customer:            {result.customer_id}")
+    _split = config.delivery_split(result.ordered)
     print(f"Ordered:             {result.ordered} prospects")
-    print(f"Delivered ({config.OVERDELIVER_MULTIPLIER}x):    {result.delivered} prospects")
+    print(f"Delivered:           {result.delivered}  "
+          f"({_split['core']} core + {_split['bonus']} bonus + {_split['spares']} spare)")
     print(f"Newly recorded:      {result.newly_recorded} (never sent before)")
     print(f"Total ever delivered:{result.total_ever_delivered}")
     print(f"CSV report:          {result.csv_path}")

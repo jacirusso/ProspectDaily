@@ -102,13 +102,30 @@ SQLITE_PATH = _get("SQLITE_PATH", os.path.join(
 
 # --- Product rules -------------------------------------------------------
 GROUP_SIZE = 10             # prospects are ordered in groups of 10
-OVERDELIVER_MULTIPLIER = 1.5  # deliver 1.5x what the customer ordered
+
+# Delivery model: customers pay for their ORDERED number, and that's all we
+# advertise. Every report then quietly includes BONUS leads (to make sure they
+# get enough quality matches) plus a few SPARES (swap-ins for any lead with
+# weak / incomplete / incorrect data). The overage is a delight in the report,
+# never a promise in pricing.
+BONUS_RATIO = float(_get("BONUS_RATIO", "0.5"))      # bonus = +50% of the order
+REPLACEMENT_COUNT = int(_get("REPLACEMENT_COUNT", "3"))  # spare swap-ins/report
+
+
+def bonus_for(ordered: int) -> int:
+    return int(round(ordered * BONUS_RATIO))
 
 
 def delivered_for(ordered: int) -> int:
-    """How many prospects we actually deliver for a given order. Always a whole
-    number (orders are multiples of 10, so 1.5x stays integer: 10->15, 20->30)."""
-    return int(round(ordered * OVERDELIVER_MULTIPLIER))
+    """Total prospects actually placed in a report: core + bonus + spares."""
+    return ordered + bonus_for(ordered) + REPLACEMENT_COUNT
+
+
+def delivery_split(ordered: int) -> dict:
+    """How a report's prospects break into sections."""
+    return {"core": ordered, "bonus": bonus_for(ordered),
+            "spares": REPLACEMENT_COUNT,
+            "total": ordered + bonus_for(ordered) + REPLACEMENT_COUNT}
 
 
 # Max prospects from the SAME company in one daily batch (1 = spread across

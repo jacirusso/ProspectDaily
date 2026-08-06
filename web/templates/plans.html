@@ -3,7 +3,7 @@
 {% block wrapclass %}{% endblock %}
 {% block body %}
 <h1>Choose your plan</h1>
-<p class="muted">Every plan delivers <strong>50% more</strong> prospects than you order.
+<p class="muted">Fresh prospects delivered every weekday. Cancel anytime.
   {% if not stripe_enabled %}<em>(Billing is in test mode — selecting a plan activates it immediately.)</em>{% endif %}</p>
 
 <div class="pricing-grid" style="margin-top:24px">
@@ -13,9 +13,9 @@
     {% if p.best_value %}<div class="badge">Best value</div>{% endif %}
     <div class="tier">{{ p.name }}</div>
     <div class="amt">${{ p.price }}<span>/mo</span></div>
-    <div class="deliver">{{ p.delivered }} prospects/day</div>
+    <div class="deliver">{{ p.ordered }} prospects/day</div>
     <ul>
-      <li>You order {{ p.ordered }}/day, get {{ p.delivered }}</li>
+      <li>{{ p.ordered }} prospects every weekday</li>
       <li>~{{ p.monthly }} prospects / month</li>
       <li>Verified email, phone & LinkedIn</li>
       <li>Custom intro email each</li>

@@ -8,7 +8,7 @@
   <p class="sub">Tell us who your best customers are. Every weekday we deliver ready-to-contact
     prospects — verified email, phone, LinkedIn, a company profile, why they fit, and a
     personalized intro email — into your own Google Drive folder.</p>
-  <p class="promo">Order in groups of 10. We always deliver 50% more — free.</p>
+  <p class="promo">Pick your daily volume. Fresh, verified prospects every weekday.</p>
   <div class="cta-row">
     <a class="btn lg" href="/signup">Start getting prospects</a>
     <a class="btn lg secondary" href="#pricing">See pricing</a>
@@ -26,7 +26,7 @@
         <p>Answer a short questionnaire — industries, titles, company size, location, and the outcome you sell.</p></div>
       <div class="step"><div class="num">2</div>
         <h3>Pick your volume</h3>
-        <p>Choose how many prospects per day. We always deliver 1.5× your order at no extra cost.</p></div>
+        <p>Choose how many prospects per day — 10, 20, or 40 — and we handle the rest.</p></div>
       <div class="step"><div class="num">3</div>
         <h3>Get them every weekday</h3>
         <p>Each weekday morning a formatted report lands in your private Google Drive folder — never a repeat.</p></div>
@@ -53,7 +53,7 @@
   <div class="inner">
     <p class="eyebrow" style="text-align:center">Pricing</p>
     <h2 class="big">Simple monthly plans</h2>
-    <p class="lead">Every plan delivers 50% more than you order. Cancel anytime.</p>
+    <p class="lead">Fresh prospects delivered every weekday. Cancel anytime.</p>
     <div class="pricing-grid">
       {% for p in plans %}
       <div class="price-card {% if p.best_value %}featured{% endif %}">
@@ -61,9 +61,9 @@
         {% if p.best_value %}<div class="badge">Best value</div>{% endif %}
         <div class="tier">{{ p.name }}</div>
         <div class="amt">${{ p.price }}<span>/mo</span></div>
-        <div class="deliver">{{ p.delivered }} prospects/day</div>
+        <div class="deliver">{{ p.ordered }} prospects/day</div>
         <ul>
-          <li>You order {{ p.ordered }}/day, get {{ p.delivered }}</li>
+          <li>{{ p.ordered }} prospects every weekday</li>
           <li>~{{ p.monthly }} prospects / month</li>
           <li>Verified email, phone & LinkedIn</li>
           <li>Custom intro email each</li>

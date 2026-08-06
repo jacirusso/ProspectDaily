@@ -67,12 +67,10 @@ def render(request: Request, name: str, **ctx):
 
 # --- public pages -------------------------------------------------------
 def _plan_rows():
-    rows = []
-    for p in plans.PLANS:
-        delivered = config.delivered_for(p["ordered"])
-        rows.append({**p, "delivered": delivered,
-                     "monthly": delivered * config.WEEKDAYS_PER_MONTH})
-    return rows
+    # Public pricing shows only what the customer buys (the ordered number).
+    # Bonus + spare leads are a delight in the report, not advertised.
+    return [{**p, "monthly": p["ordered"] * config.WEEKDAYS_PER_MONTH}
+            for p in plans.PLANS]
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -211,8 +209,6 @@ def dashboard(request: Request):
     return render(request, "dashboard.html",
                   customer=customer, runs=runs, plan=plan,
                   total_delivered=dedupe.total_delivered(user["id"]),
-                  overdeliver=config.OVERDELIVER_MULTIPLIER,
-                  delivered_per_day=config.delivered_for(customer["ordered_per_day"]),
                   has_answers=bool(customer["answers"]))
 
 
@@ -228,7 +224,6 @@ def set_folder(request: Request, folder_id: str = Form("")):
 def plans_page(request: Request):
     require_user(request)
     return render(request, "plans.html", plans=_plan_rows(),
-                  overdeliver=config.OVERDELIVER_MULTIPLIER,
                   stripe_enabled=plans.stripe_enabled())
 
 

@@ -67,7 +67,7 @@ QUESTIONS: List[Question] = [
              kind="textarea", required=False),
     Question("groups_per_day",
              "How many prospects per day? (in groups of 10)",
-             help="You pick the number ordered; we always deliver 50% more, free.",
+             help="How many prospects per day should we deliver?",
              kind="select", options=["10", "20", "30", "40", "50", "100"]),
     Question("sender_name", "Whose name should the intro emails be signed with?"),
     Question("sender_title", "What's that person's title?", required=False),

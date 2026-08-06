@@ -20,16 +20,14 @@
   <div class="card">
     <span class="pill warn">Step 2</span>
     <h2>Choose your daily volume</h2>
-    <p class="muted">Pick how many prospects you want per day. We always deliver
-      <strong>{{ overdeliver }}×</strong> that amount.</p>
+    <p class="muted">Pick how many prospects you want per day.</p>
     <a class="btn" href="/plans">Choose a plan</a>
   </div>
 {% endif %}
 
 <div class="card">
   <div class="stat">
-    <div><div class="n">{{ customer.ordered_per_day }}</div><div class="muted">Ordered / day</div></div>
-    <div><div class="n">{{ delivered_per_day }}</div><div class="muted">Delivered / day</div></div>
+    <div><div class="n">{{ customer.ordered_per_day }}</div><div class="muted">Prospects / weekday</div></div>
     <div><div class="n">{{ total_delivered }}</div><div class="muted">Total delivered (all time)</div></div>
     <div>
       <div class="n">

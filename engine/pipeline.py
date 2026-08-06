@@ -1,7 +1,7 @@
 """The daily pipeline. For one customer:
 
   1. Read their answers -> SearchSpec.
-  2. Compute ordered = groups*10, delivered = ordered * OVERDELIVER_MULTIPLIER.
+  2. Compute delivered = ordered + bonus + spares (config.delivered_for).
   3. Ask the provider for `delivered` NEW prospects, excluding everyone this
      customer has ever received (the dedupe ledger).
   4. Generate fit rationale + intro email for each.
@@ -69,6 +69,17 @@ def run_for_customer(customer_id: str, answers: dict,
             company_counts[ckey] = company_counts.get(ckey, 0) + 1
         unique.append(p)
     prospects = unique[:target]
+
+    # Tag each prospect's report section: the ordered count is "core", then a
+    # bonus block, then the spare swap-ins.
+    split = config.delivery_split(ordered)
+    for i, p in enumerate(prospects):
+        if i < split["core"]:
+            p.tier = "core"
+        elif i < split["core"] + split["bonus"]:
+            p.tier = "bonus"
+        else:
+            p.tier = "spare"
 
     # 3. AI copywriting for each kept prospect.
     for p in prospects:
