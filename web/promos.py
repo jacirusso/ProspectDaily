@@ -10,6 +10,7 @@ _STARTER_7 = {"label": "Starter — 7 days (test)", "ordered_per_day": 10, "days
 PROMO_CODES = {
     "karafree":    {"label": "Starter — 1 year (test)", "ordered_per_day": 10, "days": 365},
     "jacibsu":     {"label": "Starter — 1 year (test)", "ordered_per_day": 10, "days": 365},
+    "jacibsu1":    {"label": "Starter — 1 year (test)", "ordered_per_day": 10, "days": 365},
     "lizfree":     dict(_STARTER_7),
     "michaelfree": dict(_STARTER_7),
     "mollyfree":   dict(_STARTER_7),
