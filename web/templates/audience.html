@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Build Your Audience{% endblock %}
+{% block body %}
+<div class="card">
+  <span class="pill ok">✨ AI Audience Builder</span>
+  <h1>Let's find your best prospects</h1>
+  <p class="muted">Paste your website and our AI reads it, then proposes target-audience
+    segments — each scored and sized with real prospect counts. Pick the one to pursue.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/audience">
+    <label>Your website
+      <input type="text" name="website" value="{{ website }}" placeholder="https://yourcompany.com" required>
+    </label>
+    <label>Anything to add about who you sell to? <span class="help">Optional — helps tune the segments.</span>
+      <textarea name="offer" placeholder="e.g. We sell to marketing leaders at mid-market SaaS companies"></textarea>
+    </label>
+    <p style="margin-top:16px">
+      <button class="btn" type="submit">Analyze my site &amp; suggest audiences</button>
+      <span class="muted">Takes ~15 seconds.</span>
+    </p>
+  </form>
+</div>
+
+{% if result %}
+  <div class="card">
+    <h2>Here's what we found{% if result.company.name %} for {{ result.company.name }}{% endif %}</h2>
+    {% if result.company.sells %}<p class="muted">{{ result.company.sells }}</p>{% endif %}
+    <p class="muted">Choose the audience you want to pursue — you can change it anytime.</p>
+  </div>
+
+  <div class="pricing-grid">
+    {% for s in result.segments %}
+    <div class="price-card {% if loop.first %}featured{% endif %}">
+      {% if loop.first %}<div class="badge">Top match</div>{% endif %}
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="tier">{{ s.name }}</span>
+        <span class="pill ok">Fit {{ s.fit_score }}</span>
+      </div>
+      <p class="muted" style="margin:8px 0 6px">{{ s.who }}</p>
+      <div class="deliver">{{ s.pool_display }} prospects available</div>
+      <ul>
+        <li><strong>Titles:</strong> {{ s.titles | join(', ') }}</li>
+        <li><strong>Industries:</strong> {{ s.industries | join(', ') or 'Any' }}</li>
+        <li><strong>Company size:</strong> {{ s.company_size | join(', ') or 'Any' }}</li>
+        <li><strong>Location:</strong> {{ s.locations | join(', ') or 'Anywhere' }}</li>
+      </ul>
+      <p class="muted" style="font-size:13px"><em>{{ s.rationale }}</em></p>
+      <form method="post" action="/audience/choose">
+        <input type="hidden" name="company_name" value="{{ result.company.name }}">
+        <input type="hidden" name="company_offer" value="{{ result.company.sells }}">
+        <input type="hidden" name="value_prop" value="{{ result.company.outcome }}">
+        <input type="hidden" name="company_website" value="{{ website }}">
+        <input type="hidden" name="titles" value="{{ s.titles | join(', ') }}">
+        <input type="hidden" name="locations" value="{{ s.locations | join(', ') }}">
+        <input type="hidden" name="keywords" value="{{ s.keywords | join(', ') }}">
+        <input type="hidden" name="seniorities" value="{{ s.seniorities | join('||') }}">
+        <input type="hidden" name="industries" value="{{ s.industries | join('||') }}">
+        <input type="hidden" name="company_size" value="{{ s.company_size | join('||') }}">
+        <button class="btn" type="submit" style="width:100%">Choose this audience</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="muted" style="text-align:center;margin-top:14px">
+    Prefer to set it manually? <a href="/questionnaire">Fill out the form yourself</a>.
+  </p>
+{% endif %}
+{% endblock %}

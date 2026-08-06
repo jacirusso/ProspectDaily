@@ -18,7 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from engine import config, db
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
-from engine import dedupe
+from engine import dedupe, audience_builder
 from web import store, security, plans, billing
 
 logging.basicConfig(
@@ -121,6 +121,59 @@ def logout(request: Request):
 
 
 # --- questionnaire ------------------------------------------------------
+# --- AI Audience Builder ------------------------------------------------
+@app.get("/audience", response_class=HTMLResponse)
+def audience_form(request: Request):
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
+    website = (customer["answers"].get("company_website", "") if customer else "")
+    return render(request, "audience.html", result=None, website=website, error=None)
+
+
+@app.post("/audience", response_class=HTMLResponse)
+def audience_run(request: Request, website: str = Form(...), offer: str = Form("")):
+    require_user(request)
+    try:
+        result = audience_builder.build(website.strip(), offer.strip())
+    except Exception:
+        log.exception("audience build failed")
+        return render(request, "audience.html", result=None, website=website,
+                      error="Couldn't read that website. Double-check the URL and try again.")
+    for s in result["segments"]:
+        s["pool_display"] = (f"{s['pool']:,}" if isinstance(s.get("pool"), int)
+                             and s["pool"] >= 0 else "—")
+    return render(request, "audience.html", result=result, website=website, error=None)
+
+
+@app.post("/audience/choose")
+async def audience_choose(request: Request):
+    user = require_user(request)
+    form = await request.form()
+    customer = store.get_customer(user["id"])
+    answers = dict(customer["answers"] or {})
+
+    def split(name):
+        return [p.strip() for p in (form.get(name) or "").split("||") if p.strip()]
+
+    # company basics (from the site) — only fill if not already set
+    for key, field in [("company_name", "company_name"),
+                       ("company_offer", "company_offer"),
+                       ("value_prop", "value_prop"),
+                       ("company_website", "company_website")]:
+        val = (form.get(field) or "").strip()
+        if val:
+            answers[key] = val
+    # targeting from the chosen segment
+    answers["target_titles"] = form.get("titles", "")
+    answers["locations"] = form.get("locations", "")
+    answers["keywords"] = form.get("keywords", "")
+    answers["target_seniority"] = split("seniorities")
+    answers["target_industries"] = split("industries")
+    answers["company_size"] = split("company_size")
+    store.save_answers(user["id"], answers)
+    return RedirectResponse("/questionnaire", status_code=303)
+
+
 @app.get("/questionnaire", response_class=HTMLResponse)
 def questionnaire_form(request: Request):
     user = require_user(request)
