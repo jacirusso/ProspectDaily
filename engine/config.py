@@ -111,13 +111,12 @@ SQLITE_PATH = _get("SQLITE_PATH", os.path.join(
 # --- Product rules -------------------------------------------------------
 GROUP_SIZE = 10             # prospects are ordered in groups of 10
 
-# Delivery model: customers pay for their ORDERED number, and that's all we
-# advertise. Every report then quietly includes BONUS leads (to make sure they
-# get enough quality matches) plus a few SPARES (swap-ins for any lead with
-# weak / incomplete / incorrect data). The overage is a delight in the report,
-# never a promise in pricing.
-BONUS_RATIO = float(_get("BONUS_RATIO", "0.25"))     # bonus = +25% of the order
-REPLACEMENT_COUNT = int(_get("REPLACEMENT_COUNT", "1"))  # spare swap-ins/report
+# Delivery model: customers get exactly the number of verified prospects they
+# pay for — no over-delivery. With quality, verified data there's no need for
+# spare swap-ins. (Both knobs default to 0; raise them if we ever want to add a
+# bonus/spare block back — the report + pipeline still support tiers.)
+BONUS_RATIO = float(_get("BONUS_RATIO", "0"))        # bonus = +% of the order
+REPLACEMENT_COUNT = int(_get("REPLACEMENT_COUNT", "0"))  # spare swap-ins/report
 
 
 def bonus_for(ordered: int) -> int:

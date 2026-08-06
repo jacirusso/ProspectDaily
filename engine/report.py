@@ -23,14 +23,19 @@ COLUMNS = [
 
 
 def rows_from(prospects) -> List[List[str]]:
-    """Header row followed by one row per prospect, in COLUMNS order, with a
-    leading Group column (Your prospects / Bonus / Spare)."""
-    header = ["Group"] + [label for _, label in COLUMNS]
+    """Header row followed by one row per prospect, in COLUMNS order. A leading
+    Group column is added ONLY when the report spans more than one tier
+    (bonus/spare); with the default no-over-delivery model it's omitted."""
+    tiers = {(p.tier or "core") for p in prospects}
+    show_group = len(tiers) > 1
+    prefix = ["Group"] if show_group else []
+    header = prefix + [label for _, label in COLUMNS]
     body = []
     for p in prospects:
         d = p.to_dict()
-        group = TIER_LABEL.get(d.get("tier") or "core", "")
-        body.append([group] + [str(d.get(key, "") or "") for key, _ in COLUMNS])
+        row_prefix = ([TIER_LABEL.get(d.get("tier") or "core", "")]
+                      if show_group else [])
+        body.append(row_prefix + [str(d.get(key, "") or "") for key, _ in COLUMNS])
     return [header] + body
 
 
@@ -70,20 +75,27 @@ def html_report(prospects, heading: str) -> str:
     counts = {}
     for p in prospects:
         counts[p.tier or "core"] = counts.get(p.tier or "core", 0) + 1
+    multi_tier = len(counts) > 1
+    # Only show the "N core + N bonus + ..." breakdown when there's more than
+    # one tier; otherwise it's just noise next to the total.
     breakdown = " + ".join(
         f"{counts[t]} {TIER_LABEL[t].lower()}" for t in ("core", "bonus", "spare")
-        if counts.get(t))
+        if counts.get(t)) if multi_tier else ""
+    breakdown_html = (f' &nbsp;·&nbsp; <span style="color:{_MUTED};'
+                      f'font-weight:normal;">{breakdown}</span>' if breakdown else "")
     parts = [
         f'<p style="color:{_MUTED};font-size:10pt;letter-spacing:1px;">'
         f'PROSPECTDAILY</p>',
         f'<h1 style="color:{_INK};font-size:22pt;margin:0;">{_esc(heading)}</h1>',
         f'<p style="color:{_BRAND};font-weight:bold;font-size:12pt;">'
-        f'{len(prospects)} prospects &nbsp;·&nbsp; <span style="color:{_MUTED};font-weight:normal;">{breakdown}</span></p>',
+        f'{len(prospects)} prospects{breakdown_html}</p>',
         f'<hr style="border:none;border-top:3px solid {_BRAND};">',
     ]
     last_tier = None
     for i, p in enumerate(prospects, 1):
-        if (p.tier or "core") != last_tier:
+        # With a single tier, skip the section header entirely — the report
+        # heading already says what these are.
+        if multi_tier and (p.tier or "core") != last_tier:
             last_tier = p.tier or "core"
             title, sub, color = _SECTIONS.get(last_tier, ("Prospects", "", _INK))
             parts.append(
