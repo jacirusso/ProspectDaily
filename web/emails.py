@@ -102,6 +102,46 @@ def _tips(c):
     return "💡 3 ways to get more from your daily prospects", _wrap("Make your prospects count.", body)
 
 
+def _trial_ending(c, days_left):
+    d = max(1, int(round(days_left)))
+    body = f"""<h1 style="margin:0 0 14px;font-size:22px;">Your free trial ends in {d} day{'s' if d != 1 else ''}</h1>
+<p>Hi {_name(c)},</p>
+<p>You've been getting fresh, verified prospects every weekday — with a ready-to-send
+intro email for each. In about {d} day{'s' if d != 1 else ''} your free trial wraps
+up and deliveries stop.</p>
+<p>Keep the momentum going: pick a plan and <strong>nothing changes</strong> — same
+audience, same daily delivery, no gap. Your targeting and your full "already-received"
+list stay saved, so you keep getting only net-new prospects.</p>
+<p style="margin:24px 0;">{_button(_BASE + "/plans", "Choose my plan")}</p>
+<p>Questions before you decide? Just reply — a real person reads these.</p>"""
+    return (f"⏳ {d} day{'s' if d != 1 else ''} left on your ProspectDaily trial",
+            _wrap("Keep your daily prospects coming.", body))
+
+
+def _trial_lastday(c):
+    body = f"""<h1 style="margin:0 0 14px;font-size:22px;">Today's your last free report</h1>
+<p>Hi {_name(c)},</p>
+<p>Your ProspectDaily trial ends today. Subscribe now and fresh prospects keep
+landing every weekday — same audience you dialed in, no interruption.</p>
+<p style="margin:24px 0;">{_button(_BASE + "/plans", "Keep my prospects coming")}</p>
+<p>Not ready? No worries — your targeting stays saved if you come back later.</p>"""
+    return ("Today's your last free ProspectDaily report",
+            _wrap("Your trial ends today.", body))
+
+
+def _trial_ended(c):
+    body = f"""<h1 style="margin:0 0 14px;font-size:22px;">Your trial has ended — reactivate anytime</h1>
+<p>Hi {_name(c)},</p>
+<p>Your free trial wrapped up, so daily deliveries are paused. The good news: your
+target audience and the full list of everyone you've already received are
+<strong>saved</strong>. Subscribe and you pick right back up with net-new prospects
+the next weekday — nothing to set up again.</p>
+<p style="margin:24px 0;">{_button(_BASE + "/plans", "Reactivate my account")}</p>
+<p>Curious what you'd get? Reply and I'll send a sample report.</p>"""
+    return ("Your ProspectDaily trial ended — reactivate anytime",
+            _wrap("Pick up right where you left off.", body))
+
+
 # --- triggers -----------------------------------------------------------
 def _send_once(customer, key, subject, html) -> bool:
     if store.email_sent(customer["id"], key):
@@ -142,7 +182,8 @@ def alert_operator(subject: str, body_html: str):
 
 
 def run_lifecycle():
-    """Called by the daily job: send day-1 nudges and day-4 tips as due."""
+    """Called by the daily job: send day-1 nudges, day-4 tips, and the
+    free-trial conversion series (as their trial nears / passes expiry)."""
     now = int(time.time())
     sent = 0
     for c in store.all_customers():
@@ -155,4 +196,26 @@ def run_lifecycle():
             s, h = _tips(c)
             if _send_once(c, "tips_d4", s, h):
                 sent += 1
+
+        # Free-trial conversion series. Targets SHORT promo trials only (a set
+        # expiry within ~31 days — i.e. the 7-day test codes, not year-long
+        # comps). Fires once each as the trial nears, hits, and passes expiry.
+        exp = int(c.get("access_expires_at") or 0)
+        created = int(c.get("created_at") or 0)
+        is_promo = (c.get("plan") or "").startswith("promo:")
+        is_short_trial = is_promo and exp and created and (exp - created) <= 31 * DAY
+        if is_short_trial:
+            days_left = (exp - now) / DAY
+            if 1.5 < days_left <= 3.5:
+                s, h = _trial_ending(c, days_left)
+                if _send_once(c, "trial_ending", s, h):
+                    sent += 1
+            elif 0 <= days_left <= 1.5:
+                s, h = _trial_lastday(c)
+                if _send_once(c, "trial_lastday", s, h):
+                    sent += 1
+            elif days_left < 0:
+                s, h = _trial_ended(c)
+                if _send_once(c, "trial_ended", s, h):
+                    sent += 1
     return sent

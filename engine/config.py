@@ -29,9 +29,17 @@ def _get(name: str, default: str = "") -> str:
 
 
 # --- Data provider -------------------------------------------------------
-# "mock" = generate realistic fake prospects (no API key needed, for testing).
-# "apollo" = use the real Apollo.io API (requires APOLLO_API_KEY).
+# "mock"   = generate realistic fake prospects (no API key needed, for testing).
+# "pdl"    = People Data Labs Person Search (redistribution-licensed; ONE
+#            operator PDL_API_KEY serves all customers). The intended provider.
+# "apollo" = Apollo.io API. NOTE: Apollo's terms forbid reselling their data in
+#            a product, so this is for operator testing only, not production.
 DATA_PROVIDER = _get("DATA_PROVIDER", "mock")
+
+# People Data Labs (operator-level; we hold the license, customers bring nothing).
+PDL_API_KEY = _get("PDL_API_KEY")
+PDL_BASE_URL = _get("PDL_BASE_URL", "https://api.peopledatalabs.com/v5")
+
 APOLLO_API_KEY = _get("APOLLO_API_KEY")
 APOLLO_BASE_URL = _get("APOLLO_BASE_URL", "https://api.apollo.io/api/v1")
 # Enrich each kept prospect to reveal a VERIFIED EMAIL (~1 credit each). This is
@@ -140,8 +148,11 @@ OPERATOR_EMAIL = _get("OPERATOR_EMAIL", "jaci@brandstateu.com")
 APOLLO_MONTHLY_CREDITS = int(_get("APOLLO_MONTHLY_CREDITS", "2500"))
 APOLLO_CREDIT_ALERT_PCT = float(_get("APOLLO_CREDIT_ALERT_PCT", "0.8"))
 # Admin cost tracker estimates (all in USD/month).
-MONTHLY_FIXED_COST = float(_get("MONTHLY_FIXED_COST", "70"))        # Apollo+Render+domain
+MONTHLY_FIXED_COST = float(_get("MONTHLY_FIXED_COST", "70"))        # Render+domain
 CLAUDE_COST_PER_10_PER_MONTH = float(_get("CLAUDE_COST_PER_10_PER_MONTH", "3"))
+# Wholesale data cost per DELIVERED prospect record (set to the PDL rate we
+# confirm — retail ~0.28, volume ~0.20). Drives the admin margin tracker.
+DATA_COST_PER_RECORD = float(_get("DATA_COST_PER_RECORD", "0.25"))
 STRIPE_PCT = 0.029
 STRIPE_FLAT = 0.30
 

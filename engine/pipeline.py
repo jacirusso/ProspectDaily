@@ -16,7 +16,7 @@ from typing import List, Optional
 from . import config, dedupe, ai, google_drive
 from .report import write_csv
 from .segments import spec_from_answers
-from .providers.apollo import get_provider
+from .providers import get_provider
 from .providers.base import Prospect
 
 
@@ -37,7 +37,7 @@ def run_for_customer(customer_id: str, answers: dict,
                      folder_id: str = "",
                      run_date: Optional[str] = None,
                      ordered: Optional[int] = None,
-                     apollo_key: str = "",
+                     apollo_key: str = "",   # deprecated: operator key is used now
                      provider=None) -> RunResult:
     run_date = run_date or date.today().isoformat()
     # `ordered` (from the customer's plan) wins; else fall back to the answer.
@@ -48,12 +48,8 @@ def run_for_customer(customer_id: str, answers: dict,
     spec = spec_from_answers(answers)
     already = dedupe.seen_keys(customer_id)
     if provider is None:
-        # BYO-key: in Apollo mode the customer must supply their own key (we
-        # never use one account's data for another — that would be reselling).
-        if config.DATA_PROVIDER.lower() == "apollo" and not apollo_key:
-            raise RuntimeError(
-                "No Apollo account connected. Add your Apollo API key to receive "
-                "prospects.")
+        # We hold one redistribution-licensed data account (operator key from
+        # env); customers bring nothing. `apollo_key` is an optional override.
         provider = get_provider(api_key=apollo_key)
 
     # 1. Find fresh prospects, excluding everyone already delivered.

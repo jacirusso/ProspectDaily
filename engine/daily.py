@@ -33,7 +33,6 @@ def run_all(run_date: str = None) -> dict:
                 c["id"], c["answers"],
                 folder_id=c.get("folder_id", ""),
                 ordered=c.get("ordered_per_day", 10),
-                apollo_key=c.get("apollo_api_key", ""),
                 run_date=run_date)
             store.log_run(c["id"], run_date, result.ordered, result.delivered,
                           result.csv_path, result.sheet_url)
@@ -82,14 +81,15 @@ def run_all(run_date: str = None) -> dict:
         month_start = int(datetime.datetime(int(y), int(m), 1,
                           tzinfo=datetime.timezone.utc).timestamp())
         used = store.prospects_delivered_since(month_start)
-        budget = config.APOLLO_MONTHLY_CREDITS
+        spend = used * config.DATA_COST_PER_RECORD
+        budget = config.APOLLO_MONTHLY_CREDITS      # records/month watch level
         if budget and used >= budget * config.APOLLO_CREDIT_ALERT_PCT:
             emails.alert_operator(
-                f"Apollo credits at {used}/{budget} this month",
-                f"<p>You've used about <strong>{used}</strong> of your ~{budget} "
-                f"monthly Apollo credit budget ({used*100//budget}%). Consider "
-                f"upgrading your Apollo plan or pausing test accounts before "
-                f"deliveries start failing.</p>")
+                f"Data usage at {used} records this month (~${spend:.0f})",
+                f"<p>You've delivered about <strong>{used}</strong> prospect records "
+                f"this month (~${spend:.0f} in data cost @ "
+                f"${config.DATA_COST_PER_RECORD}/record). Heads-up so month-end "
+                f"spend doesn't surprise you.</p>")
     except Exception:
         log.exception("credit-usage alert failed")
 

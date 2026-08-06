@@ -181,25 +181,41 @@ def _spec_from_segment(seg: dict) -> SearchSpec:
 
 
 def pool_count(seg: dict, api_key: str = "") -> int:
-    """Approx. number of matching prospects Apollo has (free; no reveal credits).
-    Uses the customer's own Apollo key. Returns -1 if unavailable."""
-    key = api_key or config.APOLLO_API_KEY
-    if config.DATA_PROVIDER.lower() != "apollo" or not key:
-        return -1
-    from .providers.apollo import _post, ApolloError
+    """Approx. number of matching prospects the data provider has (free; spends
+    no reveal/record credits). Uses the operator provider key. Returns -1 if
+    unavailable (e.g. mock mode)."""
+    provider = (config.DATA_PROVIDER or "mock").lower()
     spec = _spec_from_segment(seg)
-    params = spec_to_apollo_params(spec, page=1, per_page=1)
-    try:
-        resp = _post("/mixed_people/api_search", params, key)
-    except ApolloError:
-        return -1
-    # api_search returns the match count at the TOP LEVEL as total_entries.
-    total = resp.get("total_entries")
-    if total is None:
-        total = (resp.get("pagination") or {}).get("total_entries")
-    if total is None:
-        total = len(resp.get("people") or [])
-    return int(total)
+    if provider == "pdl":
+        key = api_key or config.PDL_API_KEY
+        if not key:
+            return -1
+        from .providers.pdl import _post, _es_query, PdlError
+        try:
+            resp = _post("/person/search",
+                         {"query": _es_query(spec), "size": 1, "dataset": "all"}, key)
+        except PdlError:
+            return -1
+        total = resp.get("total")
+        return int(total) if total is not None else -1
+    if provider == "apollo":
+        key = api_key or config.APOLLO_API_KEY
+        if not key:
+            return -1
+        from .providers.apollo import _post, ApolloError
+        params = spec_to_apollo_params(spec, page=1, per_page=1)
+        try:
+            resp = _post("/mixed_people/api_search", params, key)
+        except ApolloError:
+            return -1
+        # api_search returns the match count at the TOP LEVEL as total_entries.
+        total = resp.get("total_entries")
+        if total is None:
+            total = (resp.get("pagination") or {}).get("total_entries")
+        if total is None:
+            total = len(resp.get("people") or [])
+        return int(total)
+    return -1
 
 
 def build(url: str, offer_hint: str = "", apollo_key: str = "") -> dict:

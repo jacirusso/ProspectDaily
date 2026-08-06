@@ -13,19 +13,19 @@
     <div><div class="n">{{ costs.margin_pct }}%</div><div class="muted">Margin</div></div>
   </div>
   <p class="muted" style="margin-top:14px;font-size:13px">
-    Costs = ${{ costs.fixed }} fixed (Apollo + Render + domain) + ${{ costs.claude }} Claude + ${{ costs.stripe }} Stripe fees.
+    Costs = ${{ costs.fixed }} fixed (Render + domain) + ${{ costs.data }} data + ${{ costs.claude }} Claude + ${{ costs.stripe }} Stripe fees.
   </p>
 </div>
 
 <div class="card">
-  <h2>🎯 Apollo credits this month</h2>
-  <div style="background:#e5e7eb;border-radius:999px;height:16px;overflow:hidden;max-width:520px">
-    <div style="height:16px;width:{{ [costs.credits_pct, 100]|min }}%;background:{{ 'var(--danger)' if costs.credits_pct >= 80 else 'var(--brand)' }};"></div>
-  </div>
+  <h2>📊 Data usage this month</h2>
   <p class="muted" style="margin-top:8px">
-    ~{{ costs.credits_used }} of ~{{ costs.credits_budget }} used ({{ costs.credits_pct }}%).
-    {% if costs.credits_pct >= 80 %}<strong style="color:var(--danger)">Consider upgrading Apollo.</strong>{% endif %}
+    <strong>{{ costs.data_records }}</strong> prospect records delivered ·
+    est. <strong>${{ costs.data }}</strong> in data cost
+    (@ ${{ costs.data_rate }}/record).
   </p>
+  <p class="muted" style="font-size:13px">Pay-per-record (no fixed monthly ceiling).
+    Update the rate via <code>DATA_COST_PER_RECORD</code> once the PDL contract is signed.</p>
 </div>
 
 <h2 style="margin-top:8px">Customers</h2>

@@ -3,25 +3,6 @@
 {% block body %}
 <h1>Dashboard</h1>
 
-<div class="card">
-  <h2>🔌 Connect your Apollo account</h2>
-  {% if request.query_params.get('apollo') == 'invalid' %}<div class="error">That Apollo API key didn't work — double-check it and try again.</div>{% endif %}
-  {% if request.query_params.get('apollo') == 'needed' %}<div class="error">Connect your Apollo account below to start receiving prospects.</div>{% endif %}
-  {% if has_apollo %}
-    <p class="muted">✅ Connected. Your prospects are pulled using <strong>your own</strong> Apollo account and credits — your data stays yours.</p>
-    <form method="post" action="/settings/apollo" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
-      <label style="flex:1;min-width:220px;margin:0">Replace key<input type="password" name="apollo_key" placeholder="Paste a new key to update"></label>
-      <button class="btn secondary" type="submit">Save</button>
-    </form>
-  {% else %}
-    <p class="muted">ProspectDaily runs on <strong>your own</strong> Apollo account, so your prospect data is always yours. Paste your Apollo API key — find it in Apollo → <em>Settings → Integrations → API</em>.</p>
-    <form method="post" action="/settings/apollo" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
-      <label style="flex:1;min-width:220px;margin:0">Apollo API key<input type="password" name="apollo_key" placeholder="Your Apollo API key" required></label>
-      <button class="btn" type="submit">Connect Apollo</button>
-    </form>
-  {% endif %}
-</div>
-
 {% if not has_answers %}
   <div class="card">
     <span class="pill warn">Step 1</span>
