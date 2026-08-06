@@ -9,12 +9,15 @@ Cost note: every record returned by Person Search is billable, so we dedupe the
 returned records against the customer's ledger client-side (PDL has no free
 preview like Apollo). Keep `want` modest.
 
-⚠️  STAGED / UNVERIFIED: written against PDL's documented v5 Person Search API
-but not yet smoke-tested against a live key. After signup, set PDL_API_KEY and
-run `python -m engine.providers.pdl --selftest`, then reconcile field names and
-work-email availability with the actual response before going live.
+Reconciled against PDL's live docs on 2026-08-06 (endpoint, X-Api-Key auth,
+{status,data,total} response, record field names, job_title_levels tokens,
+work-email/phone in the base record). Still needs a live-key smoke test to
+confirm real-world match rate / coverage — after signup set PDL_API_KEY and run
+`python -m engine.providers.pdl --selftest`. (If /person/search rejects POST,
+switch to GET with the query as a param — both are documented.)
 
-Docs: https://docs.peopledatalabs.com/docs/person-search-api
+Docs: https://docs.peopledatalabs.com/docs/person-endpoints#person-search-api
+      https://docs.peopledatalabs.com/docs/example-record
       https://docs.peopledatalabs.com/docs/fields
 """
 import json
@@ -96,13 +99,13 @@ def _es_query(spec) -> dict:
 
     topic_terms = list(spec.industries) + list(spec.keywords)
     if topic_terms:
+        # Use plain `match` clauses only — PDL's Elasticsearch subset does not
+        # support `query_string`, which would error the whole search.
         topic_should = []
         for k in topic_terms:
-            topic_should.append({"match": {"job_company_industry": k}})
-            topic_should.append({"match": {"industry": k}})
-            topic_should.append({"query_string":
-                {"query": k, "default_operator": "AND",
-                 "fields": ["job_title", "job_company_name", "summary", "skills"]}})
+            for f in ("job_company_industry", "industry", "job_company_name",
+                      "job_title", "summary", "skills"):
+                topic_should.append({"match": {f: k}})
         must.append({"bool": {"minimum_should_match": 1, "should": topic_should}})
 
     query = {"bool": {"must": must}}
@@ -141,10 +144,16 @@ def _record_to_prospect(rec: dict) -> Prospect:
     li = (rec.get("linkedin_url") or "").strip()
     if li and not li.startswith("http"):
         li = "https://" + li
-    phones = rec.get("phone_numbers") or []
+    # PDL exposes phones two ways: `phone_numbers` (list of E.164 strings) and
+    # `phones` (list of {number, ...} objects). Try both, then mobile_phone.
     phone = ""
-    if phones:
-        phone = phones[0] if isinstance(phones[0], str) else (phones[0].get("number") or "")
+    nums = rec.get("phone_numbers") or []
+    if nums:
+        phone = nums[0] if isinstance(nums[0], str) else (nums[0].get("number") or "")
+    if not phone:
+        objs = rec.get("phones") or []
+        if objs and isinstance(objs[0], dict):
+            phone = objs[0].get("number") or ""
     phone = phone or (rec.get("mobile_phone") or "")
     return Prospect(
         source="pdl",
