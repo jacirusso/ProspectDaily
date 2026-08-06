@@ -1,8 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Admin{% endblock %}
 {% block body %}
-<h1>Admin — customers</h1>
-<p class="muted">{{ customers|length }} total. Only visible to the operator.</p>
+<h1>Admin</h1>
+<p class="muted">Operator-only. {{ customers|length }} customers ({{ costs.paying }} paying, {{ costs.free }} free).</p>
+
+<div class="card">
+  <h2>💰 Monthly cost & margin <span class="muted" style="font-size:12px;font-weight:normal">(estimated)</span></h2>
+  <div class="stat">
+    <div><div class="n" style="color:var(--ok)">${{ costs.revenue }}</div><div class="muted">Revenue / mo</div></div>
+    <div><div class="n">${{ costs.total_cost }}</div><div class="muted">Costs / mo</div></div>
+    <div><div class="n" style="color:{{ 'var(--ok)' if costs.margin >= 0 else 'var(--danger)' }}">${{ costs.margin }}</div><div class="muted">Gross margin</div></div>
+    <div><div class="n">{{ costs.margin_pct }}%</div><div class="muted">Margin</div></div>
+  </div>
+  <p class="muted" style="margin-top:14px;font-size:13px">
+    Costs = ${{ costs.fixed }} fixed (Apollo + Render + domain) + ${{ costs.claude }} Claude + ${{ costs.stripe }} Stripe fees.
+  </p>
+</div>
+
+<div class="card">
+  <h2>🎯 Apollo credits this month</h2>
+  <div style="background:#e5e7eb;border-radius:999px;height:16px;overflow:hidden;max-width:520px">
+    <div style="height:16px;width:{{ [costs.credits_pct, 100]|min }}%;background:{{ 'var(--danger)' if costs.credits_pct >= 80 else 'var(--brand)' }};"></div>
+  </div>
+  <p class="muted" style="margin-top:8px">
+    ~{{ costs.credits_used }} of ~{{ costs.credits_budget }} used ({{ costs.credits_pct }}%).
+    {% if costs.credits_pct >= 80 %}<strong style="color:var(--danger)">Consider upgrading Apollo.</strong>{% endif %}
+  </p>
+</div>
+
+<h2 style="margin-top:8px">Customers</h2>
 <div class="card" style="overflow-x:auto">
   <table>
     <tr>

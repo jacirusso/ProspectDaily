@@ -157,12 +157,43 @@ def reset(request: Request, token: str = Form(...), password: str = Form(...)):
     return RedirectResponse("/login?reset=1", status_code=303)
 
 
+def _cost_summary(customers):
+    """Live revenue / cost / margin estimate for the admin dashboard."""
+    import datetime
+    price = {p["key"]: p["price"] for p in plans.PLANS}
+    active = [c for c in customers if c["status"] == "active"]
+    paying = [c for c in active if c["plan"] in price]
+    revenue = sum(price[c["plan"]] for c in paying)
+    claude = sum(config.CLAUDE_COST_PER_10_PER_MONTH * (c["ordered_per_day"] / 10.0)
+                 for c in active)
+    stripe_fees = sum(price[c["plan"]] * config.STRIPE_PCT + config.STRIPE_FLAT
+                      for c in paying)
+    total_cost = config.MONTHLY_FIXED_COST + claude + stripe_fees
+    margin = revenue - total_cost
+    now = datetime.datetime.now(datetime.timezone.utc)
+    month_start = int(datetime.datetime(now.year, now.month, 1,
+                      tzinfo=datetime.timezone.utc).timestamp())
+    used = store.prospects_delivered_since(month_start)
+    budget = config.APOLLO_MONTHLY_CREDITS
+    return {
+        "active": len(active), "paying": len(paying), "free": len(active) - len(paying),
+        "revenue": round(revenue), "fixed": round(config.MONTHLY_FIXED_COST),
+        "claude": round(claude, 2), "stripe": round(stripe_fees, 2),
+        "total_cost": round(total_cost), "margin": round(margin),
+        "margin_pct": round(margin / revenue * 100) if revenue else 0,
+        "credits_used": used, "credits_budget": budget,
+        "credits_pct": round(used / budget * 100) if budget else 0,
+    }
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
     user = require_user(request)
     if user["email"].lower() != config.OPERATOR_EMAIL.lower():
         raise HTTPException(404, "Not found")
-    return render(request, "admin.html", customers=store.admin_overview())
+    customers = store.admin_overview()
+    return render(request, "admin.html", customers=customers,
+                  costs=_cost_summary(customers))
 
 
 @app.get("/logout")

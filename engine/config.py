@@ -139,6 +139,11 @@ OPERATOR_EMAIL = _get("OPERATOR_EMAIL", "jaci@brandstateu.com")
 # "prospects delivered this month" (~1 credit each) and alert past ALERT_PCT.
 APOLLO_MONTHLY_CREDITS = int(_get("APOLLO_MONTHLY_CREDITS", "2500"))
 APOLLO_CREDIT_ALERT_PCT = float(_get("APOLLO_CREDIT_ALERT_PCT", "0.8"))
+# Admin cost tracker estimates (all in USD/month).
+MONTHLY_FIXED_COST = float(_get("MONTHLY_FIXED_COST", "70"))        # Apollo+Render+domain
+CLAUDE_COST_PER_10_PER_MONTH = float(_get("CLAUDE_COST_PER_10_PER_MONTH", "3"))
+STRIPE_PCT = 0.029
+STRIPE_FLAT = 0.30
 
 # Delivery runs on WEEKDAYS ONLY (the cron is Mon–Fri). ~22 business days/month
 # is used for the "per month" figures shown to customers.
