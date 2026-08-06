@@ -108,8 +108,8 @@ GROUP_SIZE = 10             # prospects are ordered in groups of 10
 # get enough quality matches) plus a few SPARES (swap-ins for any lead with
 # weak / incomplete / incorrect data). The overage is a delight in the report,
 # never a promise in pricing.
-BONUS_RATIO = float(_get("BONUS_RATIO", "0.5"))      # bonus = +50% of the order
-REPLACEMENT_COUNT = int(_get("REPLACEMENT_COUNT", "3"))  # spare swap-ins/report
+BONUS_RATIO = float(_get("BONUS_RATIO", "0.25"))     # bonus = +25% of the order
+REPLACEMENT_COUNT = int(_get("REPLACEMENT_COUNT", "1"))  # spare swap-ins/report
 
 
 def bonus_for(ordered: int) -> int:
