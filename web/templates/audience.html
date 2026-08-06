@@ -7,7 +7,7 @@
   <p class="muted">Paste your website and our AI reads it, then proposes target-audience
     segments — each scored and sized with real prospect counts. Pick the one to pursue.</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
-  <form method="post" action="/audience">
+  <form method="post" action="/audience" onsubmit="return abStart(this)">
     <label>Your website
       <input type="text" name="website" value="{{ website }}" placeholder="https://yourcompany.com" required>
     </label>
@@ -18,7 +18,20 @@
       <button class="btn" type="submit">Analyze my site &amp; suggest audiences</button>
       <span class="muted">Takes ~15 seconds.</span>
     </p>
+    <div id="ab-loading" style="display:none;margin-top:14px;padding:14px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;color:#1e40af;">
+      ⏳ <strong>Reading your website and scoring audiences…</strong> this takes about 15 seconds — hang tight.
+    </div>
   </form>
+  <script>
+    function abStart(f){
+      var b = f.querySelector('button[type=submit]');
+      b.textContent = 'Analyzing…';
+      b.style.opacity = '0.7';
+      b.disabled = false;              /* keep enabled so the form still posts */
+      document.getElementById('ab-loading').style.display = 'block';
+      return true;
+    }
+  </script>
 </div>
 
 {% if result and result.insufficient %}

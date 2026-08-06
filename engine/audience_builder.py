@@ -146,6 +146,11 @@ Return ONLY minified JSON of this shape:
 }}]}}"""
     data = _claude_json(prompt)
     company = data.get("company", {}) or {}
+    # Blank out placeholder names when the site couldn't be identified.
+    cname = (company.get("name") or "").strip()
+    if re.search(r"not provided|unknown|^n/?a$|company name|not available|not found",
+                 cname, re.I):
+        company["name"] = ""
     segs = data.get("segments", [])[:4]
     # sanitize to allowed vocab
     for s in segs:
