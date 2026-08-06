@@ -37,6 +37,44 @@ def set_password(user_id: str, password_hash: str) -> None:
                (password_hash, user_id))
 
 
+# --- Password reset -----------------------------------------------------
+def create_password_reset(user_id: str) -> str:
+    import secrets
+    db.init_schema()
+    token = secrets.token_urlsafe(32)
+    db.execute("INSERT INTO password_resets (token, user_id, created_at) "
+               "VALUES (?, ?, ?)", (token, user_id, int(time.time())))
+    return token
+
+
+def user_id_for_reset(token: str, max_age: int = 3600):
+    """Return the user id for a valid, unused, unexpired token, else None."""
+    db.init_schema()
+    row = db.query_one(
+        "SELECT user_id, created_at, used FROM password_resets WHERE token = ?",
+        (token,))
+    if not row or row["used"] or (int(time.time()) - int(row["created_at"])) > max_age:
+        return None
+    return row["user_id"]
+
+
+def consume_reset(token: str) -> None:
+    db.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token,))
+
+
+# --- Admin --------------------------------------------------------------
+def admin_overview() -> List[Dict]:
+    """All customers with their delivered totals, for the admin dashboard."""
+    db.init_schema()
+    rows = db.query("SELECT * FROM customers ORDER BY created_at DESC")
+    for d in rows:
+        d["answers"] = json.loads(d.get("answers_json") or "{}")
+        t = db.query_one("SELECT COUNT(*) AS n FROM delivered_prospects "
+                         "WHERE customer_id = ?", (d["id"],))
+        d["total_delivered"] = int(t["n"]) if t else 0
+    return rows
+
+
 # --- Customers ----------------------------------------------------------
 def get_customer(customer_id: str) -> Optional[Dict]:
     db.init_schema()

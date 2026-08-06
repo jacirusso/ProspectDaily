@@ -62,7 +62,10 @@ def require_user(request: Request):
 
 
 def render(request: Request, name: str, **ctx):
-    ctx.update({"request": request, "user": current_user(request)})
+    user = current_user(request)
+    ctx.update({"request": request, "user": user,
+                "is_operator": bool(user and user["email"].lower()
+                                    == config.OPERATOR_EMAIL.lower())})
     return templates.TemplateResponse(name, ctx)
 
 
@@ -115,6 +118,51 @@ def login(request: Request, email: str = Form(...), password: str = Form(...)):
         return render(request, "login.html", error="Invalid email or password.")
     request.session.update({"uid": user["id"], "email": user["email"]})
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@app.get("/forgot", response_class=HTMLResponse)
+def forgot_form(request: Request):
+    return render(request, "forgot.html", sent=False)
+
+
+@app.post("/forgot", response_class=HTMLResponse)
+def forgot(request: Request, email: str = Form(...)):
+    user = store.get_user_by_email(email.strip().lower())
+    if user:  # silently no-op for unknown emails (no account enumeration)
+        token = store.create_password_reset(user["id"])
+        base = os.environ.get("APP_BASE_URL", "https://prospectdaily.com").rstrip("/")
+        try:
+            emails.send_password_reset(user["email"], f"{base}/reset?token={token}")
+        except Exception:
+            log.exception("password reset email failed")
+    return render(request, "forgot.html", sent=True)
+
+
+@app.get("/reset", response_class=HTMLResponse)
+def reset_form(request: Request, token: str = ""):
+    valid = store.user_id_for_reset(token) is not None
+    return render(request, "reset.html", token=token, valid=valid, error=None)
+
+
+@app.post("/reset")
+def reset(request: Request, token: str = Form(...), password: str = Form(...)):
+    uid = store.user_id_for_reset(token)
+    if not uid:
+        return render(request, "reset.html", token=token, valid=False, error=None)
+    if len(password) < 8:
+        return render(request, "reset.html", token=token, valid=True,
+                      error="Password must be at least 8 characters.")
+    store.set_password(uid, security.hash_password(password))
+    store.consume_reset(token)
+    return RedirectResponse("/login?reset=1", status_code=303)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin(request: Request):
+    user = require_user(request)
+    if user["email"].lower() != config.OPERATOR_EMAIL.lower():
+        raise HTTPException(404, "Not found")
+    return render(request, "admin.html", customers=store.admin_overview())
 
 
 @app.get("/logout")

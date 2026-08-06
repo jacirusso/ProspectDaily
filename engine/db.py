@@ -135,6 +135,12 @@ def init_schema() -> None:
             error        TEXT NOT NULL DEFAULT '',
             created_at   {ts} NOT NULL
         )""",
+        f"""CREATE TABLE IF NOT EXISTS password_resets (
+            token       TEXT PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            created_at  {ts} NOT NULL,
+            used        {ic} NOT NULL DEFAULT 0
+        )""",
         f"""CREATE TABLE IF NOT EXISTS sent_emails (
             customer_id   TEXT NOT NULL,
             email_key     TEXT NOT NULL,

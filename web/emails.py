@@ -112,6 +112,18 @@ def _send_once(customer, key, subject, html) -> bool:
     return ok
 
 
+def send_password_reset(email: str, link: str):
+    from engine import emailer
+    body = f"""<h1 style="margin:0 0 14px;font-size:22px;">Reset your password</h1>
+<p>We got a request to reset your ProspectDaily password. Click below to set a
+new one — this link expires in 1 hour.</p>
+<p style="margin:24px 0;">{_button(link, "Reset my password")}</p>
+<p style="color:{_MUTED};font-size:13px;">If you didn't request this, you can
+safely ignore this email — your password won't change.</p>"""
+    emailer.send(email, "Reset your ProspectDaily password",
+                 _wrap("Reset your password", body))
+
+
 def send_welcome(customer):
     s, h = _welcome(customer)
     return _send_once(customer, "welcome", s, h)

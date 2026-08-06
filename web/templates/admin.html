@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block body %}
+<h1>Admin — customers</h1>
+<p class="muted">{{ customers|length }} total. Only visible to the operator.</p>
+<div class="card" style="overflow-x:auto">
+  <table>
+    <tr>
+      <th>Email</th><th>Status</th><th>Plan</th><th>/day</th>
+      <th>Delivered</th><th>Company</th><th>Folder</th><th>Expires</th>
+    </tr>
+    {% for c in customers %}
+    <tr>
+      <td>{{ c.email }}</td>
+      <td>{% if c.status=='active' %}<span class="pill ok">active</span>
+          {% else %}<span class="pill warn">{{ c.status }}</span>{% endif %}</td>
+      <td>{{ c.plan or '—' }}</td>
+      <td>{{ c.ordered_per_day }}</td>
+      <td>{{ c.total_delivered }}</td>
+      <td>{{ c.answers.get('company_name','') or '—' }}</td>
+      <td>{% if c.client_folder_url %}<a href="{{ c.client_folder_url }}" target="_blank">open</a>{% else %}—{% endif %}</td>
+      <td>{% if c.access_expires_at %}{{ c.access_expires_at }}{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

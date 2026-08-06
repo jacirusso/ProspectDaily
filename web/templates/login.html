@@ -3,12 +3,17 @@
 {% block body %}
 <div class="card">
   <h1>Log in</h1>
+  {% if request.query_params.get('reset') == '1' %}
+    <div class="pill ok" style="display:block;padding:10px 14px;margin-bottom:12px;">
+      Password updated — log in with your new password.</div>
+  {% endif %}
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" action="/login">
     <label>Email<input type="email" name="email" required autofocus></label>
     <label>Password<input type="password" name="password" required></label>
     <p style="margin-top:18px"><button class="btn" type="submit">Log in</button></p>
   </form>
+  <p class="muted"><a href="/forgot">Forgot password?</a></p>
   <p class="muted">No account? <a href="/signup">Sign up</a>.</p>
 </div>
 {% endblock %}
