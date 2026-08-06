@@ -1,6 +1,6 @@
 :root {
   --bg: #f7f8fb; --card: #ffffff; --ink: #1a1c23; --muted: #6b7280;
-  --line: #e5e7eb; --brand: #4f46e5; --brand-ink: #ffffff;
+  --line: #e5e7eb; --brand: #2563eb; --brand2: #10b981; --brand-ink: #ffffff;
   --ok: #059669; --warn: #b45309; --danger: #dc2626; --radius: 12px;
 }
 * { box-sizing: border-box; }
@@ -14,7 +14,10 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; gap: 18px; padding: 14px 24px;
   background: var(--card); border-bottom: 1px solid var(--line);
 }
-.nav .brand { font-weight: 700; font-size: 17px; color: var(--ink); }
+.nav .brand { font-weight: 700; font-size: 18px; color: var(--ink); display: inline-flex; align-items: center; }
+.nav .brand:hover { text-decoration: none; }
+.brand-icon { width: 26px; height: 26px; margin-right: 9px; border-radius: 7px; }
+.brand-daily { color: var(--brand2); }
 .nav .spacer { flex: 1; }
 .wrap { max-width: 920px; margin: 32px auto; padding: 0 20px; }
 .wrap.narrow { max-width: 480px; }
@@ -65,7 +68,7 @@ th { color: var(--muted); font-weight: 600; }
 .section .inner { max-width: 1040px; margin: 0 auto; }
 .section.tint { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .lp-hero {
-  background: linear-gradient(160deg, #eef2ff 0%, #f7f8fb 60%);
+  background: linear-gradient(160deg, #eff6ff 0%, #ecfdf5 55%, #f7f8fb 100%);
   padding: 72px 20px 60px; text-align: center;
 }
 .lp-hero h1 { font-size: 44px; line-height: 1.1; max-width: 820px; margin: 0 auto 18px; letter-spacing: -0.5px; }

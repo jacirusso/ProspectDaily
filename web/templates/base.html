@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Prospect SaaS{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <nav class="nav">
-    <a class="brand" href="/">📈 ProspectDaily</a>
+    <a class="brand" href="/"><img class="brand-icon" src="/static/icon.svg" alt="">Prospect<span class="brand-daily">Daily</span></a>
     <span class="spacer"></span>
     {% if user %}
       <a href="/dashboard">Dashboard</a>
