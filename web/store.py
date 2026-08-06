@@ -92,6 +92,30 @@ def log_run(customer_id: str, run_date: str, ordered: int, delivered: int,
          csv_path, sheet_url, status, error, int(time.time())))
 
 
+# --- Lifecycle emails ---------------------------------------------------
+def email_sent(customer_id: str, email_key: str) -> bool:
+    db.init_schema()
+    return db.query_one(
+        "SELECT 1 AS x FROM sent_emails WHERE customer_id = ? AND email_key = ?",
+        (customer_id, email_key)) is not None
+
+
+def mark_email_sent(customer_id: str, email_key: str) -> None:
+    db.execute(
+        "INSERT INTO sent_emails (customer_id, email_key, sent_at) "
+        "VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+        (customer_id, email_key, int(time.time())))
+
+
+def all_customers() -> List[Dict]:
+    """Every customer (for lifecycle-email sweeps)."""
+    db.init_schema()
+    rows = db.query("SELECT * FROM customers")
+    for d in rows:
+        d["answers"] = json.loads(d.get("answers_json") or "{}")
+    return rows
+
+
 def recent_runs(customer_id: str, limit: int = 30) -> List[Dict]:
     db.init_schema()
     return db.query(

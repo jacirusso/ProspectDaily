@@ -36,6 +36,13 @@ def run_all(run_date: str = None) -> dict:
                           result.csv_path, result.sheet_url)
             if result.folder_url:
                 store.update_customer(c["id"], client_folder_url=result.folder_url)
+            if result.delivered:
+                try:
+                    from web import emails
+                    emails.send_first_report(store.get_customer(c["id"]),
+                                             result.folder_url or "")
+                except Exception:
+                    log.exception("first-report email failed for %s", c["email"])
             ok += 1
             log.info("  ✓ %s: delivered %d (sheet: %s)", c["email"],
                      result.delivered, result.sheet_url or "CSV only")
@@ -44,6 +51,14 @@ def run_all(run_date: str = None) -> dict:
             log.exception("  ✗ %s failed", c["email"])
             store.log_run(c["id"], run_date, c.get("ordered_per_day", 10), 0,
                           None, None, status="error", error=str(e)[:500])
+    # Lifecycle emails (day-1 nudges, day-4 tips) for the whole customer base.
+    try:
+        from web import emails
+        sent = emails.run_lifecycle()
+        log.info("lifecycle emails sent: %d", sent)
+    except Exception:
+        log.exception("lifecycle email sweep failed")
+
     summary = {"date": run_date, "customers": len(customers),
                "ok": ok, "failed": failed}
     log.info("done: %s", summary)

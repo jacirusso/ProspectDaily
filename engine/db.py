@@ -129,6 +129,12 @@ def init_schema() -> None:
             error        TEXT NOT NULL DEFAULT '',
             created_at   {ts} NOT NULL
         )""",
+        f"""CREATE TABLE IF NOT EXISTS sent_emails (
+            customer_id   TEXT NOT NULL,
+            email_key     TEXT NOT NULL,
+            sent_at       {ts} NOT NULL,
+            PRIMARY KEY (customer_id, email_key)
+        )""",
         f"""CREATE TABLE IF NOT EXISTS delivered_prospects (
             customer_id   TEXT NOT NULL,
             dedupe_key    TEXT NOT NULL,

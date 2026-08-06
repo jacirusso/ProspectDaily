@@ -19,7 +19,7 @@ from engine import config, db
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe, audience_builder
-from web import store, security, plans, billing
+from web import store, security, plans, billing, emails
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -95,6 +95,10 @@ def signup(request: Request, email: str = Form(...), password: str = Form(...)):
         return render(request, "signup.html", error="That email already has an account.")
     uid = store.create_user(email, security.hash_password(password))
     request.session.update({"uid": uid, "email": email})
+    try:
+        emails.send_welcome(store.get_customer(uid))
+    except Exception:
+        log.exception("welcome email failed")
     return RedirectResponse("/questionnaire", status_code=303)
 
 
@@ -306,6 +310,12 @@ def run_now(request: Request):
                       result.csv_path, result.sheet_url)
         if result.folder_url:
             store.update_customer(user["id"], client_folder_url=result.folder_url)
+        if result.delivered:
+            try:
+                emails.send_first_report(store.get_customer(user["id"]),
+                                         result.folder_url or "")
+            except Exception:
+                log.exception("first-report email failed")
     except Exception as e:
         log.exception("run-now failed for %s", user["id"])
         store.log_run(user["id"], today, customer["ordered_per_day"], 0,
