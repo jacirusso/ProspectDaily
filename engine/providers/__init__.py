@@ -5,7 +5,11 @@ OPERATOR-level API key from the environment. We hold ONE data account (licensed
 for redistribution) and deliver prospects to all customers — customers bring
 nothing. The optional `api_key` arg is an override for operator CLI/testing.
 """
+import logging
+
 from .. import config
+
+log = logging.getLogger("providers")
 
 
 def get_provider(api_key: str = ""):
@@ -20,5 +24,11 @@ def get_provider(api_key: str = ""):
         key = api_key or config.APOLLO_API_KEY
         if key:
             return ApolloProvider(key)
+    # Loud guard: if a REAL provider is configured but its key is missing, don't
+    # quietly ship fake data — say so plainly in the logs.
+    if provider != "mock":
+        log.error("DATA_PROVIDER=%s but no API key is set — falling back to MOCK "
+                  "(fake) data. Set the provider's API key to deliver real "
+                  "prospects.", provider)
     from .mock import MockProvider
     return MockProvider()
