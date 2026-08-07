@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Sample Report — ProspectDaily{% endblock %}
+{% block description %}See exactly what a ProspectDaily daily report looks like — verified B2B prospects with company, contact, email, phone, LinkedIn, a fit rationale, and a ready-to-send intro email.{% endblock %}
+{% block body %}
+<div style="text-align:center;max-width:680px;margin:0 auto 6px;">
+  <span class="pill ok">Live sample</span>
+  <h1 style="margin:12px 0 8px;">This is what lands in your Google Drive — every weekday</h1>
+  <p class="muted" style="font-size:16px;">Each morning we deliver verified, on-target B2B prospects — company, contact,
+    email, phone, LinkedIn, why they're a fit, and a ready-to-send intro email. Below is a real sample
+    (2 of your daily 10–40).</p>
+  <div style="margin:16px 0 6px;"><a class="btn lg" href="/signup">Start getting prospects</a></div>
+</div>
+
+<style>
+  .report-preview{--brand:#2563eb;--green:#059669;--green-bg:#ecfdf5;--ink:#0f172a;
+    --muted:#64748b;--line:#e5e9f0;--bg:#f5f7fb;--card:#fff;--email-bg:#f0f6ff;
+    max-width:840px;margin:22px auto;border:1px solid var(--line);border-radius:20px;
+    overflow:hidden;background:var(--bg);box-shadow:0 10px 40px rgba(15,23,42,.10);
+    font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--ink);}
+  .report-preview .cover{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#2563eb 100%);
+    color:#fff;padding:32px 38px 28px;}
+  .report-preview .brandrow{display:flex;align-items:center;gap:10px;font-weight:800;
+    font-size:14px;letter-spacing:.5px;opacity:.95;}
+  .report-preview .dot{width:22px;height:22px;border-radius:6px;background:#fff;display:inline-flex;
+    align-items:center;justify-content:center;color:#2563eb;font-weight:900;font-size:13px;}
+  .report-preview .cover h2{margin:14px 0 4px;font-size:27px;letter-spacing:-.5px;color:#fff;}
+  .report-preview .cover .sub{opacity:.85;font-size:13.5px;}
+  .report-preview .metarow{display:flex;gap:26px;margin-top:18px;flex-wrap:wrap;}
+  .report-preview .metarow .n{font-size:21px;font-weight:800;line-height:1;}
+  .report-preview .metarow .l{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-top:4px;}
+  .report-preview .cards{padding:24px 26px 6px;}
+  .report-preview .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+  .report-preview .chead{display:flex;align-items:flex-start;gap:14px;padding:17px 20px 13px;border-bottom:1px solid var(--line);}
+  .report-preview .num{flex:none;width:32px;height:32px;border-radius:9px;background:var(--brand);
+    color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .report-preview .who{flex:1;}
+  .report-preview .who .name{font-size:17px;font-weight:800;letter-spacing:-.2px;}
+  .report-preview .who .title{color:var(--muted);font-size:13.5px;margin-top:1px;}
+  .report-preview .co{text-align:right;font-size:13px;}
+  .report-preview .co .coname{font-weight:700;}
+  .report-preview .co .cometa{color:var(--muted);font-size:11.5px;margin-top:2px;}
+  .report-preview .body{padding:15px 20px 18px;}
+  .report-preview .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 24px;margin-bottom:13px;}
+  .report-preview .f{display:flex;gap:8px;font-size:13px;align-items:baseline;}
+  .report-preview .f .k{color:var(--muted);width:70px;flex:none;font-size:11.5px;}
+  .report-preview .f a{color:var(--brand);text-decoration:none;}
+  .report-preview .desc{color:#475569;font-size:13px;line-height:1.55;border-left:3px solid var(--line);
+    padding:2px 0 2px 13px;margin:6px 0 13px;}
+  .report-preview .fit{background:var(--green-bg);border:1px solid #bbf7d0;border-radius:12px;
+    padding:11px 15px;font-size:13.5px;line-height:1.55;margin-bottom:13px;}
+  .report-preview .fit b{color:var(--green);}
+  .report-preview .email{background:var(--email-bg);border:1px solid #dbeafe;border-radius:12px;padding:13px 15px;}
+  .report-preview .email .lbl{font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--brand);font-weight:800;}
+  .report-preview .email .subj{font-weight:700;margin:6px 0 8px;font-size:13.5px;}
+  .report-preview .email .msg{font-size:13px;line-height:1.6;color:#1e293b;white-space:pre-line;}
+  .report-preview .foot{text-align:center;color:var(--muted);font-size:11.5px;padding:6px 26px 18px;}
+  @media (max-width:640px){ .report-preview .grid{grid-template-columns:1fr;} .report-preview .chead{flex-wrap:wrap;} .report-preview .co{text-align:left;} }
+</style>
+
+<div class="report-preview">
+  <div class="cover">
+    <div class="brandrow"><span class="dot">◎</span> PROSPECTDAILY</div>
+    <h2>Daily Prospect Report</h2>
+    <div class="sub">Prepared for Brand State U · Tuesday, August 6, 2026</div>
+    <div class="metarow">
+      <div><div class="n">10</div><div class="l">Prospects</div></div>
+      <div><div class="n">10</div><div class="l">Net-new today</div></div>
+      <div><div class="n">100%</div><div class="l">Verified email</div></div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="chead">
+        <div class="num">1</div>
+        <div class="who"><div class="name">Sarah Chen</div><div class="title">VP of Marketing</div></div>
+        <div class="co"><div class="coname">Flowspace</div><div class="cometa">Logistics SaaS · ~240 employees</div></div>
+      </div>
+      <div class="body">
+        <div class="grid">
+          <div class="f"><span class="k">Email</span><a href="#">s.chen@flowspace.com</a></div>
+          <div class="f"><span class="k">Phone</span> (415) 555-0182</div>
+          <div class="f"><span class="k">Website</span><a href="#">flowspace.com</a></div>
+          <div class="f"><span class="k">LinkedIn</span><a href="#">in/sarahchen</a></div>
+          <div class="f"><span class="k">Address</span> 88 Townsend St, San Francisco, CA</div>
+        </div>
+        <div class="desc">Flowspace is a fulfillment-network platform helping DTC brands offer fast,
+          affordable shipping. Series C, scaling their demand-gen team after a recent funding round.</div>
+        <div class="fit"><b>✓ Why it's a fit:</b> They just raised a Series C and are hiring across growth —
+          a classic moment when brands over-invest in performance and under-invest in positioning. Your
+          brand-and-demand programs are exactly the gap a scaling VP of Marketing feels first.</div>
+        <div class="email">
+          <div class="lbl">Ready-to-send intro email</div>
+          <div class="subj">Subject: Positioning that keeps pace with your Series C</div>
+          <div class="msg">Hi Sarah,
+
+Congrats on the raise — scaling a growth team post-Series C is a great problem to have, and usually the moment messaging starts to strain under the volume.
+
+We help B2B teams like Flowspace turn a busy demand engine into a coherent brand that actually converts. Worth a 20-minute look at what that could do for your pipeline?
+
+— Jaci</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="chead">
+        <div class="num">2</div>
+        <div class="who"><div class="name">Marcus Reed</div><div class="title">Chief Marketing Officer</div></div>
+        <div class="co"><div class="coname">Brightpath Health</div><div class="cometa">Healthtech · ~180 employees</div></div>
+      </div>
+      <div class="body">
+        <div class="grid">
+          <div class="f"><span class="k">Email</span><a href="#">mreed@brightpath.io</a></div>
+          <div class="f"><span class="k">Phone</span> (312) 555-0147</div>
+          <div class="f"><span class="k">Website</span><a href="#">brightpath.io</a></div>
+          <div class="f"><span class="k">LinkedIn</span><a href="#">in/marcusreed</a></div>
+          <div class="f"><span class="k">Address</span> 220 W Kinzie St, Chicago, IL</div>
+        </div>
+        <div class="desc">Brightpath Health builds care-coordination software for mid-size clinics. Recently
+          expanded into three new states and rebranded from their original clinical-tools positioning.</div>
+        <div class="fit"><b>✓ Why it's a fit:</b> A rebrand mid-expansion is high-stakes and easy to get
+          half-right. A CMO steering that transition is exactly who benefits from an outside brand partner
+          who's done demand-gen alongside it.</div>
+        <div class="email">
+          <div class="lbl">Ready-to-send intro email</div>
+          <div class="subj">Subject: Making the Brightpath rebrand pull its weight in pipeline</div>
+          <div class="msg">Hi Marcus,
+
+Saw Brightpath's expansion into three new markets — congrats. Rebrands during growth spurts are where a lot of pipeline quietly leaks if the story and the demand engine drift apart.
+
+We pair brand work with demand-gen so the new positioning actually shows up in booked meetings. Open to comparing notes for 20 minutes?
+
+— Jaci</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">ProspectDaily · fresh, verified B2B prospects every weekday · prospectdaily.com</div>
+</div>
+
+<div style="text-align:center;max-width:620px;margin:26px auto 8px;">
+  <h2 style="margin:0 0 6px;">Wake up to this every weekday.</h2>
+  <p class="muted">Tell us who your best customers are — our AI builds your target audience, and fresh prospects
+    land in your Drive each morning. No lists to scrape, no research to do.</p>
+  <div style="margin-top:14px;"><a class="btn lg" href="/signup">Start getting prospects</a>
+    <a class="btn lg secondary" href="/#pricing">See pricing</a></div>
+</div>
+{% endblock %}

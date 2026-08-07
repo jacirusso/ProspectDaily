@@ -84,6 +84,12 @@ def home(request: Request):
     return render(request, "home.html", plans=_plan_rows())
 
 
+@app.get("/sample", response_class=HTMLResponse)
+def sample(request: Request):
+    """Public sample report so prospects can see what they'd receive."""
+    return render(request, "sample.html")
+
+
 @app.get("/signup", response_class=HTMLResponse)
 def signup_form(request: Request):
     return render(request, "signup.html", error=None)
