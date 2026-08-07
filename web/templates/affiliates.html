@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Affiliate Program — Earn {{ commission_pct }}% recurring · ProspectDaily{% endblock %}
+{% block outer %}
+
+<section class="lp-hero">
+  <span class="eyebrow">ProspectDaily Affiliates</span>
+  <h1>Earn {{ commission_pct }}% recurring commission — for the life of every customer.</h1>
+  <p class="sub">Refer businesses to ProspectDaily and earn {{ commission_pct }}% of
+    every payment they make, every month, for as long as they stay. No caps, paid
+    automatically to your bank.</p>
+  <div class="cta-row">
+    {% if is_affiliate %}
+      <a class="btn lg" href="/affiliate">Go to my affiliate dashboard</a>
+    {% elif user %}
+      <form method="post" action="/affiliate/join"><button class="btn lg" type="submit">Become an affiliate — it's free</button></form>
+    {% else %}
+      <a class="btn lg" href="/signup">Create an account to join</a>
+      <a class="btn lg secondary" href="/login">Log in</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="inner">
+    <p class="eyebrow" style="text-align:center">How it works</p>
+    <h2 class="big">Three steps to recurring income</h2>
+    <div class="steps">
+      <div class="step"><div class="num">1</div>
+        <h3>Share your link</h3>
+        <p>Join in one click and get a personal referral link to share with your audience, clients, or network.</p></div>
+      <div class="step"><div class="num">2</div>
+        <h3>They subscribe</h3>
+        <p>Anyone who signs up through your link is tracked to you for {{ '60' }} days — and tied to you when they become a paying customer.</p></div>
+      <div class="step"><div class="num">3</div>
+        <h3>You get paid — automatically</h3>
+        <p>Earn {{ commission_pct }}% of every payment they make, for life. Payouts land in your bank via Stripe once you clear ${{ min_payout }}.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section tint">
+  <div class="inner" style="max-width:720px">
+    <p class="eyebrow" style="text-align:center">The details</p>
+    <h2 class="big">Simple, generous terms</h2>
+    <div class="feature-grid" style="margin-top:30px">
+      <div class="feature"><div class="ic">💸</div><h3>{{ commission_pct }}% recurring, lifetime</h3><p>Not a one-time bounty — you earn on every renewal for as long as your referral stays a customer.</p></div>
+      <div class="feature"><div class="ic">🏦</div><h3>Automatic payouts</h3><p>Connect your bank once through Stripe. Cleared commissions are paid out automatically — no invoicing.</p></div>
+      <div class="feature"><div class="ic">🗓️</div><h3>{{ hold_days }}-day hold</h3><p>Commissions clear {{ hold_days }} days after each payment (covering the refund window), then become payable.</p></div>
+      <div class="feature"><div class="ic">📊</div><h3>Full transparency</h3><p>Your dashboard shows every click, referral, commission, and payout in real time.</p></div>
+    </div>
+    <div style="text-align:center;margin-top:34px">
+      {% if is_affiliate %}
+        <a class="btn lg" href="/affiliate">Open my dashboard</a>
+      {% elif user %}
+        <form method="post" action="/affiliate/join"><button class="btn lg" type="submit">Become an affiliate — it's free</button></form>
+      {% else %}
+        <a class="btn lg" href="/signup">Get started</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  <p>© ProspectDaily · Affiliate Program</p>
+  <p style="margin-top:6px;"><a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms">Terms of Service</a></p>
+</div>
+{% endblock %}

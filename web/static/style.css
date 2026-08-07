@@ -202,3 +202,19 @@ table.kv td { border: none; padding: 5px 0; }
 /* Prospect add table */
 .prospect-table tr.is-added td { opacity: .55; }
 .ta-right { text-align: right; }
+
+/* ============ Affiliate program ============ */
+.ref-link { display: flex; gap: 8px; align-items: center; }
+.ref-link input { flex: 1; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px; background: #f7f9fc; }
+.aff-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px; margin-bottom: 20px; }
+.stat-card { background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; padding: 18px; text-align: center; }
+.stat-card .n { font-size: 26px; font-weight: 800; }
+.stat-card.hi { border-color: #a7f3d0; background: #ecfdf5; }
+.stat-card.hi .n { color: var(--ok); }
+.earn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 18px; }
+.earn-n { font-size: 28px; font-weight: 800; }
+.earn-n.ok { color: var(--ok); }

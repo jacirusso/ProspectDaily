@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}My Affiliate Dashboard — ProspectDaily{% endblock %}
+{% block body %}
+
+<h1>Affiliate Dashboard</h1>
+<p class="muted">Earn {{ commission_pct }}% of every payment your referrals make — for life.</p>
+
+{% if request.query_params.get('connect') == 'done' %}
+  <div class="card" style="border-color:#a7f3d0;background:#ecfdf5"><p style="margin:0">Thanks — we've refreshed your payout status below.</p></div>
+{% elif request.query_params.get('connect') == 'unavailable' %}
+  <div class="error">Payout setup isn't available yet. Please check back shortly.</div>
+{% elif request.query_params.get('connect') == 'error' %}
+  <div class="error">Something went wrong starting payout setup. Please try again.</div>
+{% endif %}
+
+<div class="card">
+  <h2>Your referral link</h2>
+  <p class="muted" style="margin-top:0">Share this anywhere. Anyone who signs up through it is tracked to you.</p>
+  <div class="ref-link">
+    <input type="text" id="reflink" value="{{ link }}" readonly onclick="this.select()">
+    <button class="btn small" type="button" onclick="copyLink(this)">Copy</button>
+  </div>
+</div>
+
+<div class="aff-stats">
+  <div class="stat-card"><div class="n">{{ stats.clicks }}</div><div class="muted">Clicks</div></div>
+  <div class="stat-card"><div class="n">{{ stats.referrals }}</div><div class="muted">Sign-ups</div></div>
+  <div class="stat-card"><div class="n">{{ stats.conversions }}</div><div class="muted">Paying customers</div></div>
+  <div class="stat-card hi"><div class="n">{{ bal.lifetime|money }}</div><div class="muted">Lifetime earned</div></div>
+</div>
+
+<div class="card">
+  <h2>Earnings</h2>
+  <div class="earn-grid">
+    <div><div class="earn-n ok">{{ bal.payable|money }}</div><div class="muted">Available to pay out</div></div>
+    <div><div class="earn-n">{{ bal.pending|money }}</div><div class="muted">Pending ({{ hold_days }}-day hold)</div></div>
+    <div><div class="earn-n">{{ bal.paid|money }}</div><div class="muted">Paid out to date</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Payouts</h2>
+  {% if aff.connect_status == 'active' %}
+    <p><span class="pill ok">✓ Bank connected</span> Cleared commissions of ${{ min_payout }}+ are paid to your bank automatically.</p>
+  {% elif aff.connect_status == 'pending' %}
+    <p class="muted">Your payout setup is <strong>in progress</strong>. Finish connecting your bank to get paid.</p>
+    <form method="post" action="/affiliate/connect"><button class="btn" type="submit">Finish payout setup</button></form>
+  {% else %}
+    <p class="muted">Connect your bank through Stripe to receive automatic payouts. Takes about 2 minutes.</p>
+    {% if stripe_enabled %}
+      <form method="post" action="/affiliate/connect"><button class="btn" type="submit">Set up payouts</button></form>
+    {% else %}
+      <p class="muted"><em>Payout setup opens soon.</em></p>
+    {% endif %}
+  {% endif %}
+  {% if payouts %}
+    <table style="margin-top:16px">
+      <tr><th>Date</th><th>Amount</th><th>Status</th></tr>
+      {% for p in payouts %}
+      <tr><td>{{ p.created_at|d }}</td><td>{{ p.amount_cents|money }}</td>
+        <td>{% if p.status=='paid' %}<span class="pill ok">Paid</span>{% elif p.status=='failed' %}<span class="pill warn">Failed</span>{% else %}{{ p.status|capitalize }}{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Referrals</h2>
+  {% if referrals %}
+    <table>
+      <tr><th>When</th><th>Referred</th><th>Status</th></tr>
+      {% for r in referrals %}
+      <tr>
+        <td class="muted">{{ r.created_at|d }}</td>
+        <td>{{ r.referred_email or '—' }}</td>
+        <td>{% if r.status=='converted' %}<span class="pill ok">Paying</span>{% else %}<span class="pill warn">Signed up</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">No referrals yet. Share your link above to get started.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Commission history</h2>
+  {% if commissions %}
+    <table>
+      <tr><th>Earned</th><th>Payment</th><th>Your {{ commission_pct }}%</th><th>Status</th></tr>
+      {% for c in commissions %}
+      <tr>
+        <td class="muted">{{ c.earned_at|d }}</td>
+        <td>{{ c.gross_cents|money }}</td>
+        <td><strong>{{ c.amount_cents|money }}</strong></td>
+        <td>
+          {% if c.status=='paid' %}<span class="pill ok">Paid</span>
+          {% elif c.status=='reversed' %}<span class="pill warn">Reversed</span>
+          {% else %}<span class="pill warn">Pending</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">No commissions yet. They'll appear here as your referrals pay.</p>
+  {% endif %}
+</div>
+
+<script>
+function copyLink(btn){
+  var el = document.getElementById('reflink');
+  el.select(); el.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(el.value).then(function(){
+    var old = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(function(){ btn.textContent = old; }, 1500);
+  });
+}
+</script>
+{% endblock %}

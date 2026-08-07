@@ -5,7 +5,8 @@ run when STRIPE_SECRET_KEY is set, so local dev works without Stripe installed.
 import logging
 import os
 
-from web import store, plans
+from engine import config
+from web import store, plans, affiliates
 
 log = logging.getLogger("billing")
 
@@ -73,7 +74,32 @@ def handle_webhook(payload: bytes, sig_header: str) -> str:
                 user_id, plan=plan["key"], ordered_per_day=plan["ordered"],
                 status="active", stripe_customer_id=obj.get("customer") or "")
             log.info("activated plan %s for user %s", plan["key"], user_id)
+            # If this customer was referred, record the Stripe customer id on the
+            # referral so renewal invoices can be matched back to the affiliate.
+            try:
+                if obj.get("customer"):
+                    affiliates.link_referral_customer(user_id, obj["customer"])
+            except Exception:
+                log.exception("referral link on checkout failed")
             return "activated"
+
+    elif etype in ("invoice.payment_succeeded", "invoice.paid"):
+        _accrue_affiliate_commission(obj)
+        return "commission-checked"
+
+    elif etype == "charge.refunded":
+        # Full refund inside the hold window reverses an unpaid commission.
+        if obj.get("invoice") and obj.get("amount_refunded") == obj.get("amount"):
+            n = affiliates.reverse_commission(obj["invoice"])
+            if n:
+                log.info("reversed %d commission(s) for refunded invoice %s",
+                         n, obj["invoice"])
+        return "refund-checked"
+
+    elif etype == "account.updated":       # Stripe Connect onboarding progress
+        status = "active" if obj.get("payouts_enabled") else "pending"
+        affiliates.update_connect_status_by_account(obj.get("id") or "", status)
+        return "connect-updated"
 
     elif etype in ("customer.subscription.deleted",
                    "customer.subscription.paused"):
@@ -156,3 +182,94 @@ def cancel_subscription_for(customer: dict) -> None:
                                     status="active", limit=1)
     for sub in subs.get("data", []):
         stripe.Subscription.modify(sub["id"], cancel_at_period_end=True)
+
+
+# --- Affiliate program: commissions + Stripe Connect payouts -------------
+def _accrue_affiliate_commission(obj) -> None:
+    """From a paid invoice, credit the referring affiliate their share (deduped
+    by invoice id, so first payment and every renewal each count once). Resolves
+    the affiliate by Stripe customer id, with an email fallback in case the
+    checkout webhook hasn't linked the customer to the referral yet."""
+    try:
+        invoice_id = obj.get("id")
+        cid = obj.get("customer") or ""
+        gross = int(obj.get("amount_paid") or 0)
+        currency = obj.get("currency") or "usd"
+        if not invoice_id or gross <= 0:
+            return
+        ref = affiliates.referral_by_stripe_customer(cid)
+        if not ref:
+            email = (obj.get("customer_email") or "").lower()
+            user = store.get_user_by_email(email) if email else None
+            if user:
+                ref = affiliates.referral_by_user(user["id"])
+                if ref and cid:
+                    affiliates.link_referral_customer(user["id"], cid)
+        if not ref:
+            return
+        if affiliates.record_commission(ref["affiliate_id"], ref["id"],
+                                        invoice_id, gross, currency):
+            affiliates.mark_referral_converted(ref["id"])
+            log.info("commission accrued: affiliate=%s invoice=%s gross=%d",
+                     ref["affiliate_id"], invoice_id, gross)
+    except Exception:
+        log.exception("affiliate commission accrual failed")
+
+
+def create_connect_account(affiliate: dict) -> str:
+    """Create a Stripe Connect Express account for an affiliate (transfers only)."""
+    stripe = _stripe()
+    acct = stripe.Account.create(
+        type="express",
+        email=affiliate.get("email") or None,
+        capabilities={"transfers": {"requested": True}},
+        business_type="individual",
+        metadata={"affiliate_id": affiliate["id"],
+                  "affiliate_code": affiliate["code"]})
+    return acct["id"]
+
+
+def connect_onboarding_url(connect_id: str, refresh_url: str,
+                           return_url: str) -> str:
+    stripe = _stripe()
+    link = stripe.AccountLink.create(
+        account=connect_id, refresh_url=refresh_url, return_url=return_url,
+        type="account_onboarding")
+    return link["url"]
+
+
+def connect_status(connect_id: str) -> str:
+    """Live payout-readiness for a connected account: 'active' once Stripe has
+    everything it needs to pay them, else 'pending'."""
+    stripe = _stripe()
+    acct = stripe.Account.retrieve(connect_id)
+    return "active" if acct.get("payouts_enabled") else "pending"
+
+
+def run_affiliate_payouts() -> dict:
+    """Automated sweep: transfer each Connect-ready affiliate's payable balance
+    (>= the minimum) from the platform Stripe balance to their account. Called
+    from the daily cron and the admin 'Run payouts' button. Per-affiliate errors
+    are isolated so one failure can't stop the rest."""
+    if not plans.stripe_enabled():
+        return {"paid": 0, "note": "stripe disabled"}
+    stripe = _stripe()
+    ready = affiliates.affiliates_ready_for_payout(config.AFFILIATE_MIN_PAYOUT_CENTS)
+    paid, total = 0, 0
+    for item in ready:
+        aff, amt, cids = item["affiliate"], item["amount_cents"], item["commission_ids"]
+        try:
+            tr = stripe.Transfer.create(
+                amount=amt, currency="usd",
+                destination=aff["stripe_connect_id"],
+                metadata={"affiliate_id": aff["id"], "affiliate_code": aff["code"]})
+            pid = affiliates.create_payout(aff["id"], amt, "usd", tr["id"], "paid")
+            affiliates.mark_commissions_paid(cids, pid)
+            paid += 1
+            total += amt
+            log.info("paid affiliate %s $%.2f (transfer %s)",
+                     aff["code"], amt / 100, tr["id"])
+        except Exception:
+            log.exception("payout failed for affiliate %s", aff["id"])
+            affiliates.create_payout(aff["id"], amt, "usd", "", "failed")
+    return {"paid": paid, "total_cents": total, "candidates": len(ready)}
