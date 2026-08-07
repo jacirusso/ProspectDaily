@@ -377,15 +377,17 @@ def plans_page(request: Request):
 
 
 @app.post("/plans/choose")
-def choose_plan(request: Request, plan_key: str = Form(...)):
+def choose_plan(request: Request, plan_key: str = Form(...),
+                interval: str = Form("month")):
     user = require_user(request)
     plan = plans.by_key(plan_key)
     if not plan:
         raise HTTPException(400, "Unknown plan")
+    interval = "year" if interval == "year" else "month"
     if plans.stripe_enabled():
         # Real checkout. Activation happens in the Stripe webhook AFTER payment.
         try:
-            return RedirectResponse(billing.create_checkout_url(user, plan),
+            return RedirectResponse(billing.create_checkout_url(user, plan, interval),
                                     status_code=303)
         except Exception as e:
             log.exception("stripe checkout failed")

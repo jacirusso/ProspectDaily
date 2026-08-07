@@ -16,19 +16,21 @@ def _stripe():
     return stripe
 
 
-def create_checkout_url(user: dict, plan: dict) -> str:
+def create_checkout_url(user: dict, plan: dict, interval: str = "month") -> str:
     stripe = _stripe()
     base = os.environ.get("APP_BASE_URL", "http://localhost:8000")
-    price_id = plans.stripe_price_id(plan)
+    price_id = plans.stripe_price_id(plan, interval)
     if not price_id:
         raise RuntimeError(
             f"No Stripe price id configured for plan '{plan['key']}' "
             f"(set {plan['stripe_env']}).")
+    cadence = (f"Billed annually at ${plan.get('annual'):,}/yr (2 months free)."
+               if interval == "year" else "Billed monthly.")
     blurb = (
         f"You're subscribing to ProspectDaily {plan['name']} — "
         f"{plan['ordered']} verified B2B prospects delivered to your Google Drive "
         f"every weekday, each with a researched, ready-to-send intro email. "
-        f"Cancel anytime from your dashboard. "
+        f"{cadence} Cancel anytime from your dashboard. "
         f"Note: ProspectDaily is operated by Brand State U, so \"Brand State U\" "
         f"may appear on your receipt and card statement.")
     session = stripe.checkout.Session.create(
@@ -90,7 +92,7 @@ def handle_webhook(payload: bytes, sig_header: str) -> str:
     return "ignored"
 
 
-def change_plan(customer: dict, plan: dict) -> None:
+def change_plan(customer: dict, plan: dict, interval: str = "month") -> None:
     """Modify the customer's active Stripe subscription to a new plan's price
     (Stripe prorates the difference automatically)."""
     stripe = _stripe()
@@ -102,7 +104,8 @@ def change_plan(customer: dict, plan: dict) -> None:
     sub = data[0]
     item_id = sub["items"]["data"][0]["id"]
     stripe.Subscription.modify(
-        sub["id"], items=[{"id": item_id, "price": plans.stripe_price_id(plan)}],
+        sub["id"],
+        items=[{"id": item_id, "price": plans.stripe_price_id(plan, interval)}],
         proration_behavior="create_prorations")
 
 

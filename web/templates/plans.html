@@ -20,13 +20,22 @@
   {% endif %}
 </div>
 
-<div class="pricing-grid" style="margin-top:24px">
+<div class="billing-toggle">
+  <button type="button" class="bt-opt active" data-int="month">Monthly</button>
+  <button type="button" class="bt-opt" data-int="year">Annual <span class="bt-save">2 months free</span></button>
+</div>
+
+<div class="pricing-grid" style="margin-top:16px">
   {% for p in plans %}
   <div class="price-card {% if p.best_value %}featured{% endif %}">
     {% if p.popular %}<div class="badge">Most popular</div>{% endif %}
     {% if p.best_value %}<div class="badge">Best value</div>{% endif %}
     <div class="tier">{{ p.name }}</div>
-    <div class="amt">${{ p.price }}<span>/mo</span></div>
+    <div class="amt">
+      <span class="price-monthly">${{ p.price }}<span>/mo</span></span>
+      <span class="price-annual" style="display:none">${{ "{:,}".format(p.annual) }}<span>/yr</span></span>
+    </div>
+    <div class="annual-note" style="display:none">2 months free — save ${{ "{:,}".format(p.price * 2) }}/yr</div>
     <div class="deliver">{{ p.ordered }} prospects/day</div>
     <ul>
       <li>{{ p.ordered }} prospects every weekday</li>
@@ -38,9 +47,33 @@
     </ul>
     <form method="post" action="/plans/choose">
       <input type="hidden" name="plan_key" value="{{ p.key }}">
+      <input type="hidden" name="interval" value="month" class="interval-input">
       <button class="btn" type="submit" style="width:100%">Choose {{ p.name }}</button>
     </form>
   </div>
   {% endfor %}
 </div>
+
+<style>
+  .billing-toggle{display:flex;justify-content:center;gap:0;margin:26px auto 0;width:max-content;
+    background:#eef2f8;border-radius:999px;padding:4px;}
+  .bt-opt{border:none;background:transparent;padding:8px 18px;border-radius:999px;font:inherit;
+    font-size:14px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;gap:8px;}
+  .bt-opt.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(15,23,42,.14);}
+  .bt-save{font-size:11px;font-weight:700;color:#047857;background:#eafaf3;padding:2px 8px;border-radius:999px;}
+  .annual-note{font-size:13px;color:#047857;font-weight:600;margin:-4px 0 8px;}
+</style>
+<script>
+(function(){
+  var opts = document.querySelectorAll('.bt-opt');
+  function set(iv){
+    opts.forEach(function(o){ o.classList.toggle('active', o.dataset.int === iv); });
+    document.querySelectorAll('.price-monthly').forEach(function(e){ e.style.display = iv === 'month' ? '' : 'none'; });
+    document.querySelectorAll('.price-annual').forEach(function(e){ e.style.display = iv === 'year' ? '' : 'none'; });
+    document.querySelectorAll('.annual-note').forEach(function(e){ e.style.display = iv === 'year' ? '' : 'none'; });
+    document.querySelectorAll('.interval-input').forEach(function(e){ e.value = iv; });
+  }
+  opts.forEach(function(o){ o.addEventListener('click', function(){ set(o.dataset.int); }); });
+})();
+</script>
 {% endblock %}
