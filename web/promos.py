@@ -20,6 +20,7 @@ PROMO_CODES = {
     "tommyfree7":  dict(_STARTER_7),
     "karafree7":   dict(_STARTER_7),
     "lizfree7":    dict(_STARTER_7),
+    "melissafree7": dict(_STARTER_7),
 }
 
 
