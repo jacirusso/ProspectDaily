@@ -24,6 +24,13 @@ def create_checkout_url(user: dict, plan: dict) -> str:
         raise RuntimeError(
             f"No Stripe price id configured for plan '{plan['key']}' "
             f"(set {plan['stripe_env']}).")
+    blurb = (
+        f"You're subscribing to ProspectDaily {plan['name']} — "
+        f"{plan['ordered']} verified B2B prospects delivered to your Google Drive "
+        f"every weekday, each with a researched, ready-to-send intro email. "
+        f"Cancel anytime from your dashboard. "
+        f"Note: ProspectDaily is operated by Brand State U, so \"Brand State U\" "
+        f"may appear on your receipt and card statement.")
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
@@ -32,8 +39,10 @@ def create_checkout_url(user: dict, plan: dict) -> str:
         customer_email=user["email"],
         client_reference_id=user["id"],           # who to activate
         metadata={"plan_key": plan["key"], "user_id": user["id"]},
-        subscription_data={"metadata": {"user_id": user["id"],
-                                        "plan_key": plan["key"]}},
+        custom_text={"submit": {"message": blurb}},
+        subscription_data={
+            "description": f"ProspectDaily {plan['name']} — daily B2B prospects",
+            "metadata": {"user_id": user["id"], "plan_key": plan["key"]}},
     )
     return session.url
 
