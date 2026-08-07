@@ -188,3 +188,35 @@ def deliver_doc(prospects, folder_id: str, title: str,
         body=file_meta, media_body=media, fields="id, webViewLink",
         supportsAllDrives=supports_all).execute()
     return created.get("webViewLink")
+
+
+def deliver_pdf(pdf_bytes: bytes, folder_id: str, title: str,
+                client_label: str = None) -> Optional[str]:
+    """Upload a rendered PDF report into the client's Drive folder (no Docs
+    conversion — stays a pixel-perfect PDF). Returns the file's shareable URL."""
+    m = mode()
+    if m is None:
+        return None
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaInMemoryUpload
+
+    if m == "oauth":
+        creds = google_oauth.load_credentials()
+        supports_all = False
+        parent = None
+    else:
+        creds = _sa_credentials()
+        supports_all = True
+        parent = folder_id
+
+    drive = build("drive", "v3", credentials=creds)
+    if m == "oauth":
+        parent = _resolve_parent(drive, client_label)
+
+    name = title if title.lower().endswith(".pdf") else title + ".pdf"
+    media = MediaInMemoryUpload(pdf_bytes, mimetype="application/pdf", resumable=False)
+    file_meta = {"name": name, "mimeType": "application/pdf", "parents": [parent]}
+    created = drive.files().create(
+        body=file_meta, media_body=media, fields="id, webViewLink",
+        supportsAllDrives=supports_all).execute()
+    return created.get("webViewLink")

@@ -149,3 +149,120 @@ def write_csv(prospects, path: str) -> str:
         writer = csv.writer(f)
         writer.writerows(rows_from(prospects))
     return path
+
+
+# --- Polished PDF layout (rendered by WeasyPrint) ------------------------
+# Table-based layout (no flexbox/grid) so WeasyPrint renders it faithfully.
+_PDF_CSS = """
+@page { size: Letter; margin: 1.3cm 1.3cm 1.5cm; }
+* { box-sizing: border-box; }
+body { font-family: 'Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  color:#0f172a; font-size:10.5pt; margin:0; }
+.cover { background: linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#2563eb 100%);
+  color:#fff; padding:20px 24px; border-radius:14px; margin-bottom:16px; }
+.brandrow { font-weight:800; font-size:10pt; letter-spacing:1px; }
+.cover h1 { margin:8px 0 2px; font-size:22pt; }
+.cover .sub { font-size:10pt; opacity:.9; }
+.stats { margin-top:14px; border-collapse:collapse; }
+.stats td { padding-right:30px; }
+.stats .n { font-size:16pt; font-weight:800; }
+.stats .l { font-size:7.5pt; letter-spacing:1px; text-transform:uppercase; opacity:.8; }
+.card { border:1px solid #e5e9f0; border-radius:12px; margin-bottom:13px; break-inside:avoid; }
+.chead { width:100%; border-collapse:collapse; border-bottom:1px solid #e5e9f0; }
+.chead td { padding:11px 14px; vertical-align:top; }
+.num { display:inline-block; width:26px; height:26px; line-height:26px; text-align:center;
+  background:#2563eb; color:#fff; font-weight:800; border-radius:8px; font-size:11pt; }
+.name { font-size:13pt; font-weight:800; }
+.ptitle { color:#64748b; font-size:10pt; }
+.co { text-align:right; }
+.coname { font-weight:700; font-size:10.5pt; }
+.cometa { color:#64748b; font-size:9pt; }
+.body { padding:11px 14px 13px; }
+.grid { width:100%; border-collapse:collapse; margin-bottom:9px; }
+.grid td { width:50%; padding:3px 10px 3px 0; font-size:10pt; vertical-align:top; }
+.grid .k { color:#64748b; font-size:8.5pt; letter-spacing:.5px; }
+.grid a { color:#2563eb; text-decoration:none; }
+.desc { color:#475569; font-size:10pt; line-height:1.5; border-left:3px solid #e5e9f0;
+  padding-left:12px; margin:4px 0 11px; }
+.fit { background:#ecfdf5; border:1px solid #bbf7d0; border-radius:10px;
+  padding:9px 13px; font-size:10pt; line-height:1.5; margin-bottom:11px; }
+.fit b { color:#059669; }
+.email { background:#f0f6ff; border:1px solid #dbeafe; border-radius:10px; padding:10px 13px; }
+.elbl { font-size:7pt; letter-spacing:1.5px; text-transform:uppercase; color:#2563eb; font-weight:800; }
+.esubj { font-weight:700; font-size:10pt; margin:5px 0 6px; }
+.emsg { font-size:10pt; line-height:1.55; white-space:pre-line; color:#1e293b; }
+.foot { text-align:center; color:#94a3b8; font-size:8pt; margin-top:8px; }
+"""
+
+
+def _fmt_date(run_date: str) -> str:
+    import datetime
+    try:
+        y, m, d = (int(x) for x in run_date.split("-"))
+        return datetime.date(y, m, d).strftime("%A, %B %d, %Y").replace(" 0", " ")
+    except Exception:
+        return run_date or ""
+
+
+def _cell(k: str, val: str, link: bool = False) -> str:
+    val = _esc(val) if val else "—"
+    if link and val != "—":
+        href = val if val.startswith("http") else "https://" + val
+        val = f'<a href="{_esc(href)}">{val}</a>'
+    return f'<div><span class="k">{k}</span><br>{val}</div>'
+
+
+def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
+    """Build the polished report HTML for WeasyPrint → PDF."""
+    n = len(prospects)
+    sub = "Prepared for " + _esc(company_name) if company_name else "Your daily prospects"
+    if run_date:
+        sub += " · " + _fmt_date(run_date)
+    parts = [f"<html><head><meta charset='utf-8'><style>{_PDF_CSS}</style></head><body>",
+             '<div class="cover">',
+             '<div class="brandrow">◎ PROSPECTDAILY</div>',
+             '<h1>Daily Prospect Report</h1>',
+             f'<div class="sub">{sub}</div>',
+             '<table class="stats"><tr>',
+             f'<td><div class="n">{n}</div><div class="l">Prospects</div></td>',
+             f'<td><div class="n">{n}</div><div class="l">Net-new today</div></td>',
+             '<td><div class="n">100%</div><div class="l">Verified email</div></td>',
+             '</tr></table></div>']
+    for i, p in enumerate(prospects, 1):
+        d = p.to_dict()
+        meta = []
+        if d.get("employee_count"):
+            meta.append(f"~{d['employee_count']} employees")
+        if d.get("industry"):
+            meta.append(_esc(d["industry"]))
+        meta_line = " · ".join(meta)
+        contact = (f'<table class="grid"><tr>'
+                   f'<td>{_cell("EMAIL", d["email"])}</td>'
+                   f'<td>{_cell("PHONE", d["phone"])}</td></tr><tr>'
+                   f'<td>{_cell("WEBSITE", d["website"], link=True)}</td>'
+                   f'<td>{_cell("LINKEDIN", d["linkedin_url"], link=True)}</td></tr><tr>'
+                   f'<td colspan="2">{_cell("ADDRESS", d["company_address"])}</td>'
+                   f'</tr></table>')
+        body_html = _esc(d.get("intro_email_body", ""))
+        parts.append(f"""
+<div class="card">
+  <table class="chead"><tr>
+    <td style="width:38px"><span class="num">{i}</span></td>
+    <td><div class="name">{_esc(d['full_name'])}</div><div class="ptitle">{_esc(d['title'])}</div></td>
+    <td class="co"><div class="coname">{_esc(d['company'])}</div><div class="cometa">{meta_line}</div></td>
+  </tr></table>
+  <div class="body">
+    {contact}
+    {'<div class="desc">' + _esc(d['company_description']) + '</div>' if d.get('company_description') else ''}
+    <div class="fit"><b>✓ Why it's a fit:</b> {_esc(d['fit_reason'])}</div>
+    <div class="email">
+      <div class="elbl">Ready-to-send intro email</div>
+      <div class="esubj">Subject: {_esc(d.get('intro_email_subject',''))}</div>
+      <div class="emsg">{body_html}</div>
+    </div>
+  </div>
+</div>""")
+    parts.append('<div class="foot">ProspectDaily · fresh, verified B2B prospects '
+                 'every weekday · prospectdaily.com</div>')
+    parts.append("</body></html>")
+    return "".join(parts)

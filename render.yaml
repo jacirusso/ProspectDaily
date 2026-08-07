@@ -34,7 +34,7 @@ services:
       - key: DATA_PROVIDER
         value: apollo
       - key: REPORT_FORMAT
-        value: doc
+        value: pdf
       - key: ANTHROPIC_MODEL
         value: claude-sonnet-5
       - key: APOLLO_API_KEY
@@ -55,6 +55,9 @@ services:
         sync: false
       - key: STRIPE_PRICE_PRO
         sync: false
+      - key: PDF_SERVICE_URL          # set to the prospectdaily-pdf service URL
+        sync: false
+      - fromGroup: pdf-shared
 
   # --- Daily report job (weekdays) -----------------------------------
   - type: cron
@@ -74,7 +77,7 @@ services:
       - key: DATA_PROVIDER
         value: apollo
       - key: REPORT_FORMAT
-        value: doc
+        value: pdf
       - key: ANTHROPIC_MODEL
         value: claude-sonnet-5
       - key: APOLLO_API_KEY
@@ -85,3 +88,24 @@ services:
         sync: false
       - key: GOOGLE_OAUTH_TOKEN_JSON
         sync: false
+      - key: PDF_SERVICE_URL          # set to the prospectdaily-pdf service URL
+        sync: false
+      - fromGroup: pdf-shared
+
+  # --- PDF render service (WeasyPrint in a container) -----------------
+  - type: web
+    name: prospectdaily-pdf
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./pdfservice/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - fromGroup: pdf-shared
+
+# Shared generated secret so web/cron and the PDF service agree on the header.
+envVarGroups:
+  - name: pdf-shared
+    envVars:
+      - key: PDF_SERVICE_SECRET
+        generateValue: true

@@ -40,6 +40,12 @@ DATA_PROVIDER = _get("DATA_PROVIDER", "mock")
 PDL_API_KEY = _get("PDL_API_KEY")
 PDL_BASE_URL = _get("PDL_BASE_URL", "https://api.peopledatalabs.com/v5")
 
+# --- PDF render service (separate container; see pdfservice/) -------------
+# When set, daily reports are delivered as a polished PDF. Unset/unreachable =>
+# graceful fallback to the Google Doc format.
+PDF_SERVICE_URL = _get("PDF_SERVICE_URL")
+PDF_SERVICE_SECRET = _get("PDF_SERVICE_SECRET")
+
 APOLLO_API_KEY = _get("APOLLO_API_KEY")
 APOLLO_BASE_URL = _get("APOLLO_BASE_URL", "https://api.apollo.io/api/v1")
 # Enrich each kept prospect to reveal a VERIFIED EMAIL (~1 credit each). This is
@@ -68,8 +74,10 @@ GOOGLE_OAUTH_TOKEN = _get("GOOGLE_OAUTH_TOKEN",
                                        "google_token.json"))
 # Name of the folder the app creates/uses in the user's Drive for reports.
 GOOGLE_DRIVE_FOLDER_NAME = _get("GOOGLE_DRIVE_FOLDER_NAME", "ProspectDaily Reports")
-# Daily report format: "doc" (styled Google Doc, default) or "sheet".
-REPORT_FORMAT = _get("REPORT_FORMAT", "doc").lower()
+# Daily report format: "pdf" (polished PDF via WeasyPrint, default),
+# "doc" (styled Google Doc), or "sheet". PDF falls back to Doc if WeasyPrint
+# isn't available, so it's always safe.
+REPORT_FORMAT = _get("REPORT_FORMAT", "pdf").lower()
 # Service-account fallback (Workspace Shared Drives only).
 GOOGLE_SERVICE_ACCOUNT_JSON = _get("GOOGLE_SERVICE_ACCOUNT_JSON")
 

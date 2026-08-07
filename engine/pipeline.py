@@ -14,7 +14,7 @@ from datetime import date
 from typing import List, Optional
 
 from . import config, dedupe, ai, google_drive
-from .report import write_csv
+from .report import write_csv, pdf_html
 from .segments import spec_from_answers
 from .providers import get_provider
 from .providers.base import Prospect
@@ -108,8 +108,22 @@ def run_for_customer(customer_id: str, answers: dict,
     client_label = (answers.get("company_name") or customer_id)[:120].strip()
     if google_drive.is_available():
         title = f"{answers.get('company_name','Prospects')} — Daily Prospects {run_date}"
+        fmt = (config.REPORT_FORMAT or "pdf").lower()
         try:
-            if config.REPORT_FORMAT == "sheet":
+            if fmt == "pdf":
+                from . import pdf as pdf_mod
+                try:
+                    if not pdf_mod.available():
+                        raise RuntimeError("WeasyPrint not installed")
+                    html = pdf_html(prospects, answers.get("company_name", ""), run_date)
+                    sheet_url = google_drive.deliver_pdf(
+                        pdf_mod.render_pdf(html), folder_id, title,
+                        client_label=client_label)
+                except Exception as pe:  # PDF render/deps issue -> Doc fallback
+                    print(f"[warn] PDF render failed ({pe}); falling back to Google Doc")
+                    sheet_url = google_drive.deliver_doc(prospects, folder_id, title,
+                                                         client_label=client_label)
+            elif fmt == "sheet":
                 sheet_url = google_drive.deliver(prospects, folder_id, title,
                                                  client_label=client_label)
             else:
