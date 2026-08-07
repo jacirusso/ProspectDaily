@@ -80,6 +80,32 @@
 </div>
 {% endif %}
 
+{% if crm_enabled %}
+<div class="card ld-card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <span class="pill ok">LeadDaily</span>
+      <h2 style="margin:8px 0 2px">Your pipeline</h2>
+      <p class="muted" style="margin:0">
+        {{ crm_stats.open }} open lead{{ '' if crm_stats.open == 1 else 's' }}
+        {% if crm_stats.due %} · <strong style="color:#b45309">{{ crm_stats.due }} task{{ '' if crm_stats.due == 1 else 's' }} due today</strong>{% endif %}
+        {% if crm_stats.available %} · {{ crm_stats.available }} prospect{{ '' if crm_stats.available == 1 else 's' }} ready to add{% endif %}
+      </p>
+    </div>
+    <a class="btn" href="/crm">Open pipeline →</a>
+  </div>
+</div>
+{% elif customer.status == 'active' %}
+<div class="card ld-card upsell">
+  <span class="pill ok">Add-on</span>
+  <h2 style="margin:8px 0 2px">Turn these prospects into clients with LeadDaily</h2>
+  <p class="muted" style="margin:0 0 12px">Add any prospect to a CRM with one click,
+    work it through your pipeline, log every call and email, and never let a lead
+    go cold — for ${{ leaddaily_price }}/mo.</p>
+  <a class="btn" href="/leaddaily">See LeadDaily →</a>
+</div>
+{% endif %}
+
 <div class="card">
   <h2>Your Google Drive folder</h2>
   {% if customer.client_folder_url %}

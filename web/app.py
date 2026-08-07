@@ -20,7 +20,7 @@ from engine import config, db
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe, audience_builder
-from web import store, security, plans, billing, emails, promos
+from web import store, security, plans, billing, emails, promos, crm
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -33,6 +33,24 @@ app.add_middleware(SessionMiddleware,
                    secret_key=os.environ.get("APP_SECRET_KEY", "dev-secret-change-me"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
+def _fmt_datetime(ts):
+    import datetime
+    if not ts:
+        return ""
+    return datetime.datetime.fromtimestamp(int(ts)).strftime("%b %d, %Y · %I:%M %p")
+
+
+def _fmt_date(ts):
+    import datetime
+    if not ts:
+        return ""
+    return datetime.datetime.fromtimestamp(int(ts)).strftime("%b %d, %Y")
+
+
+templates.env.filters["dt"] = _fmt_datetime
+templates.env.filters["d"] = _fmt_date
 
 
 @app.on_event("startup")
@@ -353,11 +371,19 @@ def dashboard(request: Request):
     upgrades = [p for p in plans.PLANS if p["ordered"] > customer["ordered_per_day"]]
     gen = customer.get("generating_since") or 0
     generating = bool(gen and time.time() - gen < 600)
+    crm_enabled = bool(customer.get("crm_enabled"))
+    crm_stats = None
+    if crm_enabled:
+        crm_stats = {"open": crm.stage_counts(user["id"])["open"],
+                     "due": crm.due_today_count(user["id"]),
+                     "available": crm.prospect_counts(user["id"])["available"]}
     return render(request, "dashboard.html",
                   customer=customer, runs=runs, plan=plan,
                   is_promo=is_promo, upgrades=upgrades,
                   total_delivered=dedupe.total_delivered(user["id"]),
                   generating=generating,
+                  crm_enabled=crm_enabled, crm_stats=crm_stats,
+                  leaddaily_price=plans.LEADDAILY["price"],
                   has_answers=bool(customer["answers"]))
 
 
@@ -484,6 +510,179 @@ def account_cancel(request: Request):
         log.exception("stripe cancel failed (continuing to mark canceled)")
     store.update_customer(user["id"], status="canceled", plan="")
     return RedirectResponse("/dashboard", status_code=303)
+
+
+# --- LeadDaily (CRM add-on) ---------------------------------------------
+def _parse_due(date_str: str) -> int:
+    """A <input type=date> value ('YYYY-MM-DD') -> epoch at end of that day
+    (server-local). Empty/invalid -> 0 (no due date)."""
+    import datetime
+    s = (date_str or "").strip()
+    if not s:
+        return 0
+    try:
+        d = datetime.date.fromisoformat(s)
+        dt = datetime.datetime(d.year, d.month, d.day, 23, 59, 59)
+        return int(time.mktime(dt.timetuple()))
+    except Exception:
+        return 0
+
+
+def _require_crm(request: Request):
+    """Gate every CRM route on the add-on being enabled. Not enabled -> bounce
+    to the LeadDaily upsell page."""
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
+    if not customer or not customer.get("crm_enabled"):
+        raise HTTPException(status_code=302, headers={"Location": "/leaddaily"})
+    return user, customer
+
+
+@app.get("/leaddaily", response_class=HTMLResponse)
+def leaddaily_page(request: Request):
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
+    return render(request, "leaddaily.html", customer=customer,
+                  price=plans.LEADDAILY["price"],
+                  enabled=bool(customer and customer.get("crm_enabled")))
+
+
+@app.post("/leaddaily/enable")
+def leaddaily_enable(request: Request):
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
+    if customer and customer.get("crm_enabled"):
+        return RedirectResponse("/crm", status_code=303)
+    # Real billing only when Stripe is live, a price is configured, and the
+    # customer has a subscription to attach the add-on to. Otherwise dev/comp
+    # enable (operator dogfood, promo accounts, local dev).
+    if (plans.stripe_enabled() and plans.leaddaily_price_id()
+            and customer and customer.get("stripe_customer_id")):
+        try:
+            billing.add_leaddaily(customer)
+        except Exception:
+            log.exception("LeadDaily add-on billing failed")
+            return RedirectResponse("/leaddaily?error=1", status_code=303)
+    store.update_customer(user["id"], crm_enabled=1)
+    log.info("LeadDaily enabled for %s", user["email"])
+    return RedirectResponse("/crm?welcome=1", status_code=303)
+
+
+@app.post("/leaddaily/disable")
+def leaddaily_disable(request: Request):
+    user = require_user(request)
+    customer = store.get_customer(user["id"])
+    try:
+        billing.remove_leaddaily(customer)
+    except Exception:
+        log.exception("LeadDaily add-on removal failed (continuing to disable)")
+    store.update_customer(user["id"], crm_enabled=0)
+    return RedirectResponse("/leaddaily?disabled=1", status_code=303)
+
+
+@app.get("/crm", response_class=HTMLResponse)
+def crm_board(request: Request):
+    user, customer = _require_crm(request)
+    return render(request, "crm_board.html", customer=customer,
+                  stages=crm.STAGES,
+                  board=crm.leads_by_stage(user["id"]),
+                  counts=crm.stage_counts(user["id"]),
+                  due=crm.tasks_due(user["id"]),
+                  prospect_counts=crm.prospect_counts(user["id"]),
+                  now=int(time.time()))
+
+
+@app.get("/crm/prospects", response_class=HTMLResponse)
+def crm_prospects(request: Request):
+    user, customer = _require_crm(request)
+    return render(request, "crm_prospects.html", customer=customer,
+                  prospects=crm.list_report_prospects(user["id"], limit=200),
+                  counts=crm.prospect_counts(user["id"]))
+
+
+@app.post("/crm/add/{prospect_id}")
+def crm_add(request: Request, prospect_id: str):
+    user, _ = _require_crm(request)
+    lead_id = crm.add_lead_from_prospect(user["id"], prospect_id)
+    if not lead_id:
+        raise HTTPException(404, "Prospect not found")
+    return RedirectResponse(f"/crm/lead/{lead_id}", status_code=303)
+
+
+@app.get("/crm/lead/{lead_id}", response_class=HTMLResponse)
+def crm_lead(request: Request, lead_id: str):
+    user, customer = _require_crm(request)
+    lead = crm.get_lead(user["id"], lead_id)
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    return render(request, "crm_lead.html", customer=customer, lead=lead,
+                  stages=crm.STAGES,
+                  activities=crm.lead_activities(user["id"], lead_id),
+                  tasks=crm.lead_tasks(user["id"], lead_id),
+                  now=int(time.time()))
+
+
+@app.post("/crm/lead/{lead_id}/stage")
+def crm_lead_stage(request: Request, lead_id: str, stage: str = Form(...)):
+    user, _ = _require_crm(request)
+    crm.update_lead_stage(user["id"], lead_id, stage)
+    back = "/crm" if stage in ("won", "lost") else f"/crm/lead/{lead_id}"
+    return RedirectResponse(back, status_code=303)
+
+
+@app.post("/crm/lead/{lead_id}/note")
+def crm_lead_note(request: Request, lead_id: str, body: str = Form(...),
+                  kind: str = Form("note")):
+    user, _ = _require_crm(request)
+    if not crm.get_lead(user["id"], lead_id):
+        raise HTTPException(404, "Lead not found")
+    if body.strip():
+        crm.add_activity(user["id"], lead_id, kind, body)
+    return RedirectResponse(f"/crm/lead/{lead_id}", status_code=303)
+
+
+@app.post("/crm/lead/{lead_id}/value")
+def crm_lead_value(request: Request, lead_id: str, value: str = Form("0")):
+    user, _ = _require_crm(request)
+    try:
+        v = int(float((value or "0").replace(",", "").replace("$", "").strip()))
+    except ValueError:
+        v = 0
+    crm.update_lead_value(user["id"], lead_id, v)
+    return RedirectResponse(f"/crm/lead/{lead_id}", status_code=303)
+
+
+@app.post("/crm/lead/{lead_id}/task")
+def crm_lead_task(request: Request, lead_id: str, title: str = Form(...),
+                  due: str = Form("")):
+    user, _ = _require_crm(request)
+    if not crm.get_lead(user["id"], lead_id):
+        raise HTTPException(404, "Lead not found")
+    if title.strip():
+        crm.add_task(user["id"], lead_id, title, _parse_due(due))
+    return RedirectResponse(f"/crm/lead/{lead_id}", status_code=303)
+
+
+@app.post("/crm/lead/{lead_id}/delete")
+def crm_lead_delete(request: Request, lead_id: str):
+    user, _ = _require_crm(request)
+    crm.delete_lead(user["id"], lead_id)
+    return RedirectResponse("/crm", status_code=303)
+
+
+@app.post("/crm/task/{task_id}/done")
+def crm_task_done(request: Request, task_id: str, done: str = Form("1"),
+                  back: str = Form("/crm")):
+    user, _ = _require_crm(request)
+    crm.complete_task(user["id"], task_id, done == "1")
+    return RedirectResponse(back or "/crm", status_code=303)
+
+
+@app.post("/crm/task/{task_id}/delete")
+def crm_task_delete(request: Request, task_id: str, back: str = Form("/crm")):
+    user, _ = _require_crm(request)
+    crm.delete_task(user["id"], task_id)
+    return RedirectResponse(back or "/crm", status_code=303)
 
 
 # --- run a report now ---------------------------------------------------

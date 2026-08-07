@@ -107,3 +107,98 @@ th { color: var(--muted); font-weight: 600; }
 .footer { background: #10121a; color: #9aa1ad; padding: 40px 20px; text-align: center; font-size: 14px; }
 .footer a { color: #c7cbd3; }
 @media (max-width: 600px) { .lp-hero h1 { font-size: 32px; } .section { padding: 44px 16px; } }
+
+/* ============ LeadDaily (CRM add-on) ============ */
+.wrap.wide { max-width: 1200px; }
+.ld-head { display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.ld-head-actions { display: flex; gap: 8px; }
+.count-badge { display: inline-block; min-width: 20px; text-align: center;
+  background: #eef2f8; color: #475569; border-radius: 999px; padding: 1px 8px;
+  font-size: 12px; font-weight: 700; margin-left: 4px; }
+.count-badge.red { background: #fef2f2; color: var(--danger); }
+.ld-card .pill { display: inline-block; }
+.ld-card.upsell { background: linear-gradient(160deg,#eff6ff 0%, #ecfdf5 100%); }
+
+/* Due today */
+.due-card { border-color: #f0d8b4; background: #fffdf8; }
+.due-list { list-style: none; padding: 0; margin: 12px 0 0; display: flex;
+  flex-direction: column; gap: 8px; }
+.due-list li { display: flex; align-items: center; gap: 10px; }
+.due-body { flex: 1; }
+.tick { background: none; border: none; cursor: pointer; font-size: 20px;
+  line-height: 1; color: var(--brand); padding: 0; }
+.tick:hover { color: var(--ok); }
+.due-when { font-size: 12px; font-weight: 700; color: var(--muted); }
+.due-when.overdue { color: var(--danger); }
+
+/* Kanban board */
+.kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px;
+  align-items: flex-start; }
+.kanban-col { flex: 0 0 230px; background: #f1f4f9; border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px; }
+.kanban-col-head { display: flex; justify-content: space-between; align-items: center;
+  font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); padding: 4px 6px 10px; }
+.kanban-col-body { display: flex; flex-direction: column; gap: 8px; min-height: 20px; }
+.kanban-won .kanban-col-head { color: var(--ok); }
+.kanban-lost .kanban-col-head { color: var(--danger); }
+.lead-card { background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 12px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+.lead-name { font-weight: 700; color: var(--ink); display: block; }
+.lead-name:hover { color: var(--brand); text-decoration: none; }
+.lead-sub { font-size: 12.5px; margin-top: 2px; }
+.lead-value { font-size: 12.5px; font-weight: 700; color: var(--ok); margin-top: 4px; }
+.lead-move { margin-top: 8px; }
+.lead-move select { padding: 5px 8px; font-size: 12.5px; border-radius: 7px; }
+
+/* Lead detail */
+.lead-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 820px) { .lead-grid { grid-template-columns: 1fr; } }
+.stage-picker { display: flex; flex-direction: column; }
+.stage-picker select { min-width: 160px; }
+table.kv th { width: 90px; color: var(--muted); font-weight: 600; vertical-align: top;
+  border: none; padding: 5px 8px 5px 0; }
+table.kv td { border: none; padding: 5px 0; }
+.fit { margin-top: 14px; background: #f7f9fc; border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 14px; }
+.fit-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  font-weight: 700; color: var(--brand); }
+.fit p { margin: 4px 0 0; font-size: 14px; }
+.copy-head { display: flex; justify-content: space-between; align-items: center; }
+.email-subj { font-size: 14px; margin: 0 0 8px; }
+.outreach { white-space: pre-wrap; background: #f7f9fc; border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.6; }
+
+/* Tasks */
+.task-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.task-form input[type=text] { flex: 1; min-width: 160px; }
+.task-form input[type=date] { width: auto; }
+.task-list { list-style: none; padding: 0; margin: 14px 0 0; display: flex;
+  flex-direction: column; gap: 4px; }
+.task-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  border-bottom: 1px solid var(--line); }
+.task-list li.done .t-title { text-decoration: line-through; color: var(--muted); }
+.t-title { flex: 1; font-size: 14px; }
+.t-due { font-size: 12px; color: var(--muted); font-weight: 600; }
+.t-due.overdue { color: var(--danger); }
+.t-check, .t-del { display: flex; }
+.x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; }
+.x:hover { color: var(--danger); }
+
+/* Log + timeline */
+.log-kinds { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.log-kinds label { display: inline-flex; align-items: center; gap: 5px; font-weight: 500;
+  font-size: 13.5px; margin: 0; }
+.log-form textarea { min-height: 60px; }
+.log-form .btn { margin-top: 8px; }
+.timeline { list-style: none; padding: 0; margin: 10px 0 0; display: flex;
+  flex-direction: column; gap: 12px; }
+.timeline li { display: flex; gap: 10px; }
+.tl-ic { flex: none; font-size: 16px; width: 22px; text-align: center; }
+.tl-text { font-size: 14px; }
+.tl-when { font-size: 12px; margin-top: 2px; }
+
+/* Prospect add table */
+.prospect-table tr.is-added td { opacity: .55; }
+.ta-right { text-align: right; }

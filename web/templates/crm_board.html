@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}LeadDaily — My Pipeline{% endblock %}
+{% block wrapclass %}wide{% endblock %}
+{% block body %}
+
+<div class="ld-head">
+  <div>
+    <h1 style="margin:0">My Pipeline</h1>
+    <p class="muted" style="margin:2px 0 0">
+      {{ counts.open }} open · {{ counts.won }} won · {{ counts.total }} total leads</p>
+  </div>
+  <div class="ld-head-actions">
+    <a class="btn" href="/crm/prospects">➕ Add prospects{% if prospect_counts.available %}
+      <span class="count-badge">{{ prospect_counts.available }}</span>{% endif %}</a>
+  </div>
+</div>
+
+{% if request.query_params.get('welcome') == '1' %}
+  <div class="card" style="border-color:#a7f3d0;background:#ecfdf5">
+    <p style="margin:0"><strong>Welcome to LeadDaily 🎉</strong> Click <strong>Add prospects</strong>
+      to pull today's report into your pipeline, then work each lead through the stages.</p>
+  </div>
+{% endif %}
+
+{% if due %}
+<div class="card due-card">
+  <h2>⏰ Due today &amp; overdue <span class="count-badge red">{{ due|length }}</span></h2>
+  <ul class="due-list">
+    {% for t in due %}
+    <li>
+      <form method="post" action="/crm/task/{{ t.id }}/done" class="due-check">
+        <input type="hidden" name="back" value="/crm">
+        <button class="tick" type="submit" title="Mark done">○</button>
+      </form>
+      <div class="due-body">
+        <a href="/crm/lead/{{ t.lead_id }}">{{ t.title }}</a>
+        <span class="muted"> — {{ t.lead_name }}{% if t.lead_company %}, {{ t.lead_company }}{% endif %}</span>
+      </div>
+      <span class="due-when {% if t.due_at < now %}overdue{% endif %}">
+        {% if t.due_at < now %}Overdue{% else %}Today{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if counts.total == 0 %}
+  <div class="card">
+    <h2>Your pipeline is empty</h2>
+    <p class="muted">Every prospect in your daily reports can be added here with one
+      click. Pull them in to start working them into clients.</p>
+    <a class="btn" href="/crm/prospects">➕ Add prospects to your pipeline</a>
+  </div>
+{% else %}
+  <div class="kanban">
+    {% for s in stages %}
+    <div class="kanban-col kanban-{{ s.key }}">
+      <div class="kanban-col-head">
+        <span>{{ s.label }}</span>
+        <span class="count-badge">{{ board[s.key]|length }}</span>
+      </div>
+      <div class="kanban-col-body">
+        {% for lead in board[s.key] %}
+        <div class="lead-card">
+          <a class="lead-name" href="/crm/lead/{{ lead.id }}">{{ lead.full_name or 'Unnamed' }}</a>
+          <div class="lead-sub muted">
+            {% if lead.title %}{{ lead.title }}{% endif %}
+            {% if lead.title and lead.company %} · {% endif %}
+            {% if lead.company %}{{ lead.company }}{% endif %}
+          </div>
+          {% if lead.value %}<div class="lead-value">${{ "{:,}".format(lead.value) }}</div>{% endif %}
+          <form method="post" action="/crm/lead/{{ lead.id }}/stage" class="lead-move">
+            <select name="stage" onchange="this.form.submit()" aria-label="Move stage">
+              {% for opt in stages %}
+              <option value="{{ opt.key }}" {% if opt.key == lead.stage %}selected{% endif %}>{{ opt.label }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

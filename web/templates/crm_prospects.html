@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}LeadDaily — Add prospects{% endblock %}
+{% block body %}
+
+<div class="ld-head">
+  <div>
+    <h1 style="margin:0">Add prospects to your pipeline</h1>
+    <p class="muted" style="margin:2px 0 0">
+      {{ counts.available }} available · {{ counts.added }} already added</p>
+  </div>
+  <div class="ld-head-actions"><a class="btn secondary" href="/crm">← Back to pipeline</a></div>
+</div>
+
+<div class="card">
+  {% if prospects %}
+    <table class="prospect-table">
+      <tr><th>Name</th><th>Title</th><th>Company</th><th>Delivered</th><th></th></tr>
+      {% for p in prospects %}
+      <tr class="{% if p.added %}is-added{% endif %}">
+        <td><strong>{{ p.full_name or '—' }}</strong></td>
+        <td>{{ p.title or '' }}</td>
+        <td>{{ p.company or '' }}</td>
+        <td class="muted">{{ p.run_date }}</td>
+        <td class="ta-right">
+          {% if p.added %}
+            <a class="btn secondary small" href="/crm/lead/{{ p.added_lead_id }}">View lead →</a>
+          {% else %}
+            <form method="post" action="/crm/add/{{ p.id }}">
+              <button class="btn small" type="submit">➕ Add to CRM</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">No delivered prospects yet. Once your daily reports start
+      arriving, every prospect will appear here to add to your pipeline with one click.</p>
+    <a class="btn" href="/dashboard">Go to dashboard</a>
+  {% endif %}
+</div>
+{% endblock %}

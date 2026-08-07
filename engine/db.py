@@ -166,6 +166,59 @@ def init_schema() -> None:
             days            {ic} NOT NULL DEFAULT 7,
             created_at      {ts} NOT NULL
         )""",
+        # --- LeadDaily (CRM add-on) ------------------------------------
+        # Full prospect record captured at delivery so "Add to CRM" carries
+        # every field (the delivered_prospects ledger only holds dedupe keys).
+        f"""CREATE TABLE IF NOT EXISTS report_prospects (
+            id            TEXT PRIMARY KEY,
+            customer_id   TEXT NOT NULL,
+            run_date      TEXT NOT NULL DEFAULT '',
+            full_name     TEXT NOT NULL DEFAULT '',
+            title         TEXT NOT NULL DEFAULT '',
+            company       TEXT NOT NULL DEFAULT '',
+            email         TEXT NOT NULL DEFAULT '',
+            data_json     TEXT NOT NULL DEFAULT '{{}}',
+            added_lead_id TEXT NOT NULL DEFAULT '',
+            created_at    {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS leads (
+            id               TEXT PRIMARY KEY,
+            customer_id      TEXT NOT NULL,
+            source_prospect_id TEXT NOT NULL DEFAULT '',
+            full_name        TEXT NOT NULL DEFAULT '',
+            title            TEXT NOT NULL DEFAULT '',
+            company          TEXT NOT NULL DEFAULT '',
+            email            TEXT NOT NULL DEFAULT '',
+            phone            TEXT NOT NULL DEFAULT '',
+            linkedin_url     TEXT NOT NULL DEFAULT '',
+            website          TEXT NOT NULL DEFAULT '',
+            industry         TEXT NOT NULL DEFAULT '',
+            fit_reason       TEXT NOT NULL DEFAULT '',
+            intro_subject    TEXT NOT NULL DEFAULT '',
+            intro_body       TEXT NOT NULL DEFAULT '',
+            linkedin_message TEXT NOT NULL DEFAULT '',
+            stage            TEXT NOT NULL DEFAULT 'new',
+            value            {ic} NOT NULL DEFAULT 0,
+            created_at       {ts} NOT NULL,
+            updated_at       {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS lead_activities (
+            id            TEXT PRIMARY KEY,
+            customer_id   TEXT NOT NULL,
+            lead_id       TEXT NOT NULL,
+            kind          TEXT NOT NULL DEFAULT 'note',
+            body          TEXT NOT NULL DEFAULT '',
+            created_at    {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS lead_tasks (
+            id            TEXT PRIMARY KEY,
+            customer_id   TEXT NOT NULL,
+            lead_id       TEXT NOT NULL,
+            title         TEXT NOT NULL DEFAULT '',
+            due_at        {ts} NOT NULL DEFAULT 0,
+            done          {ic} NOT NULL DEFAULT 0,
+            created_at    {ts} NOT NULL
+        )""",
     ]
     # Best-effort migrations for columns added after a table already existed.
     migrations = [
@@ -173,6 +226,14 @@ def init_schema() -> None:
         f"ALTER TABLE customers ADD COLUMN access_expires_at {ts} NOT NULL DEFAULT 0",
         f"ALTER TABLE customers ADD COLUMN generating_since {ts} NOT NULL DEFAULT 0",
         "ALTER TABLE customers ADD COLUMN apollo_api_key TEXT NOT NULL DEFAULT ''",
+        f"ALTER TABLE customers ADD COLUMN crm_enabled {ic} NOT NULL DEFAULT 0",
+        "CREATE INDEX IF NOT EXISTS idx_report_prospects_cust "
+        "ON report_prospects (customer_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_leads_cust ON leads (customer_id, stage)",
+        "CREATE INDEX IF NOT EXISTS idx_lead_activities_lead "
+        "ON lead_activities (lead_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_lead_tasks_cust "
+        "ON lead_tasks (customer_id, done, due_at)",
     ]
     conn = _connect_raw()
     try:

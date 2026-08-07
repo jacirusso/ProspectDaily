@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}LeadDaily — the CRM add-on for ProspectDaily{% endblock %}
+{% block body %}
+
+{% if request.query_params.get('error') == '1' %}
+  <div class="error">We couldn't set up billing for the add-on. Please try again, or contact support.</div>
+{% elif request.query_params.get('disabled') == '1' %}
+  <div class="card" style="border-color:#bfdbfe;background:#eff6ff"><p style="margin:0">LeadDaily has been turned off. Your leads are saved — turn it back on anytime.</p></div>
+{% endif %}
+
+<div class="card">
+  <span class="pill ok">Add-on</span>
+  <h1 style="margin-top:10px">LeadDaily</h1>
+  <p class="muted" style="font-size:17px;max-width:60ch">
+    <strong>ProspectDaily finds them. LeadDaily closes them.</strong>
+    Turn each day's prospects into a worked pipeline — add a prospect with one
+    click, move it through your stages, log every touch, and never let a lead
+    go cold.</p>
+
+  <div class="feature-grid" style="margin:22px 0">
+    <div class="feature"><div class="ic">➕</div><h3>One-click add to CRM</h3><p>Every delivered prospect gets an "Add to CRM" button — all their details carry straight over.</p></div>
+    <div class="feature"><div class="ic">📋</div><h3>A visual pipeline</h3><p>New → Contacted → Replied → Meeting → Won. Drag your deals forward as they progress.</p></div>
+    <div class="feature"><div class="ic">📝</div><h3>Notes & full timeline</h3><p>Log calls, emails, and meetings against each lead. Your whole history in one place.</p></div>
+    <div class="feature"><div class="ic">⏰</div><h3>Tasks & "Due today"</h3><p>Schedule the next follow-up with a due date so nothing ever slips through.</p></div>
+  </div>
+
+  {% if enabled %}
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="pill ok" style="padding:8px 12px">✓ LeadDaily is on</span>
+      <a class="btn" href="/crm">Open my pipeline</a>
+    </div>
+  {% else %}
+    <div style="display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px">
+      <div style="font-size:34px;font-weight:800">${{ price }}<span class="muted" style="font-size:16px;font-weight:500">/mo</span></div>
+      <div class="muted">Added to your current plan. Cancel anytime.</div>
+    </div>
+    <form method="post" action="/leaddaily/enable">
+      <button class="btn lg" type="submit">Add LeadDaily — ${{ price }}/mo</button>
+    </form>
+    <p class="muted" style="font-size:13px;margin-top:10px">
+      When automated email sequences arrive, you'll send them from your own
+      inbox (Gmail / Outlook) — nothing to configure today.</p>
+  {% endif %}
+</div>
+
+{% if enabled %}
+<div class="card">
+  <h2>Manage add-on</h2>
+  <p class="muted">Turning LeadDaily off stops billing for the add-on. Your leads
+    and history are kept, ready for when you turn it back on.</p>
+  <form method="post" action="/leaddaily/disable"
+        onsubmit="return confirm('Turn off LeadDaily? Your leads stay saved.')">
+    <button class="btn secondary small" type="submit">Turn off LeadDaily</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

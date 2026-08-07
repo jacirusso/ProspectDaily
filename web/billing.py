@@ -109,6 +109,44 @@ def change_plan(customer: dict, plan: dict, interval: str = "month") -> None:
         proration_behavior="create_prorations")
 
 
+def add_leaddaily(customer: dict) -> None:
+    """Add the $49/mo LeadDaily add-on as a second item on the customer's active
+    subscription (Stripe prorates). Idempotent — a no-op if it's already there.
+    Raises if there's no configured price or no active subscription to attach to."""
+    price_id = plans.leaddaily_price_id()
+    if not price_id:
+        raise RuntimeError("STRIPE_PRICE_LEADDAILY not set — create the $49/mo "
+                           "LeadDaily price in Stripe and set the env var.")
+    stripe = _stripe()
+    subs = stripe.Subscription.list(customer=customer["stripe_customer_id"],
+                                    status="active", limit=1)
+    data = subs.get("data", [])
+    if not data:
+        raise RuntimeError("No active subscription to add LeadDaily to.")
+    sub = data[0]
+    for it in sub["items"]["data"]:                     # already attached?
+        if it["price"]["id"] == price_id:
+            return
+    stripe.SubscriptionItem.create(
+        subscription=sub["id"], price=price_id, quantity=1,
+        proration_behavior="create_prorations")
+
+
+def remove_leaddaily(customer: dict) -> None:
+    """Remove the LeadDaily add-on item from the customer's subscription, if present."""
+    price_id = plans.leaddaily_price_id()
+    if not price_id or not customer.get("stripe_customer_id"):
+        return
+    stripe = _stripe()
+    subs = stripe.Subscription.list(customer=customer["stripe_customer_id"],
+                                    status="active", limit=1)
+    for sub in subs.get("data", []):
+        for it in sub["items"]["data"]:
+            if it["price"]["id"] == price_id:
+                stripe.SubscriptionItem.delete(
+                    it["id"], proration_behavior="create_prorations")
+
+
 def cancel_subscription_for(customer: dict) -> None:
     """Cancel the customer's Stripe subscription at period end, if any."""
     if not plans.stripe_enabled() or not customer.get("stripe_customer_id"):
