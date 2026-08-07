@@ -15,7 +15,7 @@ PROMO_CODES = {
     "michaelfree": dict(_STARTER_7),
     "mollyfree":   dict(_STARTER_7),
     "morganfree":  dict(_STARTER_7),
-    "jacksonfree": dict(_STARTER_7),
+    "jacksonfree": {"label": "Starter — 1 year", "ordered_per_day": 10, "days": 365},
     "amberfree":   {"label": "Starter — 30 days (test)", "ordered_per_day": 10, "days": 30},
     "tommyfree7":  dict(_STARTER_7),
     "karafree7":   dict(_STARTER_7),

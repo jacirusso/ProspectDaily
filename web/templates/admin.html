@@ -67,12 +67,18 @@
   </div>
 </div>
 
-<h2 style="margin-top:8px">Customers</h2>
+<h2 id="customers" style="margin-top:8px">Customers</h2>
+{% if request.query_params.get('cust') == 'extended' %}<div class="pill ok" style="display:block;padding:8px 12px;margin-bottom:10px">Access updated ✓</div>{% endif %}
+{% if request.query_params.get('cust') == 'affiliate' %}<div class="pill ok" style="display:block;padding:8px 12px;margin-bottom:10px">Affiliate enabled ✓</div>{% endif %}
 <div class="card" style="overflow-x:auto">
+  <p class="muted" style="margin-top:0;font-size:13px">
+    <strong>Extend access</strong> re-grants free access to an existing account (no new account, no new code) —
+    enter days and click <em>+days</em>, or <em>Comp ∞</em> for never-expires. <strong>Make affiliate</strong> lets
+    someone earn commissions even while the public program is still hidden.</p>
   <table>
     <tr>
       <th>Email</th><th>Status</th><th>Plan</th><th>/day</th>
-      <th>Delivered</th><th>Company</th><th>Folder</th><th>Expires</th>
+      <th>Delivered</th><th>Company</th><th>Access ends</th><th>Extend access</th><th>Affiliate</th>
     </tr>
     {% for c in customers %}
     <tr>
@@ -83,8 +89,32 @@
       <td>{{ c.ordered_per_day }}</td>
       <td>{{ c.total_delivered }}</td>
       <td>{{ c.answers.get('company_name','') or '—' }}</td>
-      <td>{% if c.client_folder_url %}<a href="{{ c.client_folder_url }}" target="_blank">open</a>{% else %}—{% endif %}</td>
-      <td>{% if c.access_expires_at %}{{ c.access_expires_at }}{% else %}—{% endif %}</td>
+      <td>{% if not c.access_expires_at %}<span class="muted">never</span>
+          {% elif c.access_expires_at < now %}<span class="pill warn">expired</span>
+            <div class="muted" style="font-size:12px">{{ c.access_expires_at|d }}</div>
+          {% else %}{{ c.access_expires_at|d }}{% endif %}</td>
+      <td>
+        <form method="post" action="/admin/customer/extend" style="display:flex;gap:4px;align-items:center;margin:0">
+          <input type="hidden" name="customer_id" value="{{ c.id }}">
+          <input type="number" name="days" value="365" min="1" style="width:66px;padding:4px 6px">
+          <button class="btn secondary small" type="submit">+days</button>
+        </form>
+        <form method="post" action="/admin/customer/extend" style="margin:4px 0 0"
+              onsubmit="return confirm('Give {{ c.email }} free access that never expires?')">
+          <input type="hidden" name="customer_id" value="{{ c.id }}">
+          <input type="hidden" name="comp" value="1">
+          <button class="btn secondary small" type="submit">Comp ∞</button>
+        </form>
+      </td>
+      <td>
+        {% if c.id in affiliate_ids %}<span class="pill ok">✓ affiliate</span>
+        {% else %}
+        <form method="post" action="/admin/customer/affiliate" style="margin:0"
+              onsubmit="return confirm('Make {{ c.email }} an affiliate?')">
+          <input type="hidden" name="customer_id" value="{{ c.id }}">
+          <button class="btn secondary small" type="submit">Make affiliate</button>
+        </form>{% endif %}
+      </td>
     </tr>
     {% endfor %}
   </table>
