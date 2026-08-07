@@ -91,6 +91,12 @@ def run_for_customer(customer_id: str, answers: dict,
 
     # 4. Record in the ledger BEFORE reporting, so a crash can't double-send.
     newly = dedupe.record(customer_id, prospects)
+    # Capture the full prospect payloads for the LeadDaily CRM add-on. Never let
+    # a CRM-storage hiccup break the actual report delivery.
+    try:
+        dedupe.record_report_prospects(customer_id, run_date, prospects)
+    except Exception as e:
+        print(f"[warn] LeadDaily prospect capture failed: {e}")
 
     # 5. Build the report.
     out_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),

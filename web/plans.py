@@ -30,6 +30,22 @@ PLANS = [
 ]
 
 
+# LeadDaily — the CRM add-on. A flat $49/mo item added onto any plan's Stripe
+# subscription. The price id is NOT hardcoded because the product/price hasn't
+# been created in Stripe yet — set STRIPE_PRICE_LEADDAILY once it exists.
+LEADDAILY = {
+    "key": "leaddaily",
+    "name": "LeadDaily",
+    "price": 49,
+    "tagline": "Work your daily prospects into closed clients",
+    "stripe_env": "STRIPE_PRICE_LEADDAILY",
+}
+
+
+def leaddaily_price_id() -> str:
+    return os.environ.get("STRIPE_PRICE_LEADDAILY", "").strip()
+
+
 def by_key(key: str):
     for p in PLANS:
         if p["key"] == key:

@@ -5,7 +5,9 @@ across months, forever -- per customer.
 Backed by the shared db layer, so it runs on SQLite locally and Postgres in
 production with no code changes.
 """
+import json
 import time
+import uuid
 from typing import Set
 
 from . import db
@@ -55,3 +57,27 @@ def total_delivered(customer_id: str) -> int:
         "SELECT COUNT(*) AS n FROM delivered_prospects WHERE customer_id = ?",
         (customer_id,))
     return int(row["n"]) if row else 0
+
+
+def record_report_prospects(customer_id: str, run_date: str, prospects) -> int:
+    """Capture the FULL prospect record for each delivered prospect so the
+    LeadDaily CRM add-on can 'Add to CRM' with every field intact. The
+    delivered_prospects ledger only keeps dedupe keys; this keeps the whole
+    payload (contact, company, fit reason, intro email, LinkedIn message).
+
+    Best-effort: a failure here must never break report delivery, so callers
+    should wrap it in try/except. Returns the number of rows written."""
+    db.init_schema()
+    now = int(time.time())
+    rows = [
+        (uuid.uuid4().hex, customer_id, run_date or "",
+         p.full_name, p.title, p.company, p.email,
+         json.dumps(p.to_dict()), now)
+        for p in prospects
+    ]
+    return db.execute_batch(
+        """INSERT INTO report_prospects
+           (id, customer_id, run_date, full_name, title, company, email,
+            data_json, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        rows)

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ lead.full_name or 'Lead' }} — LeadDaily{% endblock %}
+{% block wrapclass %}wide{% endblock %}
+{% block body %}
+
+{% set kind_icon = {'note':'📝','email':'✉️','call':'📞','meeting':'🤝','stage':'➡️','created':'✨'} %}
+
+<div class="ld-head">
+  <div>
+    <a class="muted" href="/crm" style="font-size:13px">← Pipeline</a>
+    <h1 style="margin:2px 0 0">{{ lead.full_name or 'Unnamed lead' }}</h1>
+    <p class="muted" style="margin:2px 0 0">
+      {% if lead.title %}{{ lead.title }}{% endif %}
+      {% if lead.title and lead.company %} · {% endif %}
+      {% if lead.company %}{{ lead.company }}{% endif %}</p>
+  </div>
+  <form method="post" action="/crm/lead/{{ lead.id }}/stage" class="stage-picker">
+    <label class="muted" style="margin:0 0 4px;font-size:12px">Stage</label>
+    <select name="stage" onchange="this.form.submit()">
+      {% for s in stages %}
+      <option value="{{ s.key }}" {% if s.key == lead.stage %}selected{% endif %}>{{ s.label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="lead-grid">
+  <!-- LEFT: contact + outreach content -->
+  <div>
+    <div class="card">
+      <h2>Contact</h2>
+      <table class="kv">
+        {% if lead.email %}<tr><th>Email</th><td><a href="mailto:{{ lead.email }}">{{ lead.email }}</a></td></tr>{% endif %}
+        {% if lead.phone %}<tr><th>Phone</th><td>{{ lead.phone }}</td></tr>{% endif %}
+        {% if lead.linkedin_url %}<tr><th>LinkedIn</th><td><a href="{{ lead.linkedin_url }}" target="_blank">View profile ↗</a></td></tr>{% endif %}
+        {% if lead.website %}<tr><th>Website</th><td><a href="{{ lead.website }}" target="_blank">{{ lead.website }} ↗</a></td></tr>{% endif %}
+        {% if lead.industry %}<tr><th>Industry</th><td>{{ lead.industry }}</td></tr>{% endif %}
+      </table>
+      {% if lead.fit_reason %}
+        <div class="fit"><span class="fit-label">Why they fit</span><p>{{ lead.fit_reason }}</p></div>
+      {% endif %}
+    </div>
+
+    {% if lead.linkedin_message %}
+    <div class="card">
+      <div class="copy-head"><h2>LinkedIn message</h2>
+        <button class="btn secondary small" type="button" onclick="copyText('li-msg', this)">Copy</button></div>
+      <div class="outreach" id="li-msg">{{ lead.linkedin_message }}</div>
+    </div>
+    {% endif %}
+
+    {% if lead.intro_body %}
+    <div class="card">
+      <div class="copy-head"><h2>Intro email</h2>
+        <button class="btn secondary small" type="button" onclick="copyText('email-body', this)">Copy</button></div>
+      {% if lead.intro_subject %}<p class="email-subj"><strong>Subject:</strong> {{ lead.intro_subject }}</p>{% endif %}
+      <div class="outreach" id="email-body">{{ lead.intro_body }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT: tasks + activity -->
+  <div>
+    <div class="card">
+      <h2>Tasks</h2>
+      <form method="post" action="/crm/lead/{{ lead.id }}/task" class="task-form">
+        <input type="text" name="title" placeholder="Next step (e.g. Send follow-up)" required>
+        <input type="date" name="due" aria-label="Due date">
+        <button class="btn small" type="submit">Add</button>
+      </form>
+      {% if tasks %}
+      <ul class="task-list">
+        {% for t in tasks %}
+        <li class="{% if t.done %}done{% endif %}">
+          <form method="post" action="/crm/task/{{ t.id }}/done" class="t-check">
+            <input type="hidden" name="back" value="/crm/lead/{{ lead.id }}">
+            <input type="hidden" name="done" value="{{ 0 if t.done else 1 }}">
+            <button class="tick" type="submit" title="Toggle done">{{ '●' if t.done else '○' }}</button>
+          </form>
+          <span class="t-title">{{ t.title }}</span>
+          {% if t.due_at %}<span class="t-due {% if not t.done and t.due_at < now %}overdue{% endif %}">{{ t.due_at|d }}</span>{% endif %}
+          <form method="post" action="/crm/task/{{ t.id }}/delete" class="t-del">
+            <input type="hidden" name="back" value="/crm/lead/{{ lead.id }}">
+            <button type="submit" title="Delete" class="x">✕</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <p class="muted" style="margin:10px 0 0">No tasks yet. Add the next step so it doesn't slip.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Log activity</h2>
+      <form method="post" action="/crm/lead/{{ lead.id }}/note" class="log-form">
+        <div class="log-kinds">
+          <label><input type="radio" name="kind" value="note" checked> 📝 Note</label>
+          <label><input type="radio" name="kind" value="email"> ✉️ Emailed</label>
+          <label><input type="radio" name="kind" value="call"> 📞 Called</label>
+          <label><input type="radio" name="kind" value="meeting"> 🤝 Met</label>
+        </div>
+        <textarea name="body" placeholder="What happened? (e.g. Left a voicemail, will retry Thursday)" required></textarea>
+        <button class="btn small" type="submit">Log it</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Timeline</h2>
+      {% if activities %}
+      <ul class="timeline">
+        {% for a in activities %}
+        <li>
+          <span class="tl-ic">{{ kind_icon.get(a.kind, '•') }}</span>
+          <div class="tl-body">
+            {% if a.body %}<div class="tl-text">{{ a.body }}</div>{% endif %}
+            <div class="tl-when muted">{{ a.created_at|dt }}</div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <p class="muted" style="margin:10px 0 0">Nothing logged yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <form method="post" action="/crm/lead/{{ lead.id }}/value" class="value-form">
+      <label class="muted" style="margin:0;font-weight:600">Deal value $
+        <input type="text" name="value" value="{{ lead.value or '' }}" placeholder="0" style="width:120px;display:inline-block">
+      </label>
+      <button class="btn secondary small" type="submit">Save</button>
+    </form>
+    <form method="post" action="/crm/lead/{{ lead.id }}/delete"
+          onsubmit="return confirm('Remove this lead? Its history is deleted and the prospect can be re-added.')">
+      <button class="btn secondary small" type="submit" style="color:#dc2626">Delete lead</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function copyText(id, btn){
+  var el = document.getElementById(id);
+  var text = el.innerText || el.textContent || '';
+  navigator.clipboard.writeText(text).then(function(){
+    var old = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(function(){ btn.textContent = old; }, 1500);
+  });
+}
+</script>
+{% endblock %}
