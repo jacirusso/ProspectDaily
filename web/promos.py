@@ -25,4 +25,14 @@ PROMO_CODES = {
 
 
 def lookup(code: str):
-    return PROMO_CODES.get((code or "").strip().lower())
+    """Resolve a promo code -> its plan dict, or None. Checks the built-in codes
+    first, then codes added at runtime via the admin dashboard (DB-backed)."""
+    code_l = (code or "").strip().lower()
+    built_in = PROMO_CODES.get(code_l)
+    if built_in:
+        return built_in
+    try:
+        from web import store
+        return store.get_promo_code(code_l)
+    except Exception:
+        return None

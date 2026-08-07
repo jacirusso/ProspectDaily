@@ -192,14 +192,37 @@ def _cost_summary(customers):
     }
 
 
-@app.get("/admin", response_class=HTMLResponse)
-def admin(request: Request):
+def _require_operator(request: Request):
     user = require_user(request)
     if user["email"].lower() != config.OPERATOR_EMAIL.lower():
         raise HTTPException(404, "Not found")
+    return user
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin(request: Request):
+    _require_operator(request)
     customers = store.admin_overview()
     return render(request, "admin.html", customers=customers,
-                  costs=_cost_summary(customers))
+                  costs=_cost_summary(customers),
+                  promo_codes=store.all_promo_codes())
+
+
+@app.post("/admin/promo")
+def admin_create_promo(request: Request, code: str = Form(...),
+                       ordered_per_day: int = Form(10), days: int = Form(7),
+                       label: str = Form("")):
+    _require_operator(request)
+    ok = store.create_promo_code(code, ordered_per_day, days, label)
+    return RedirectResponse(f"/admin?promo={'added' if ok else 'exists'}#promos",
+                            status_code=303)
+
+
+@app.post("/admin/promo/delete")
+def admin_delete_promo(request: Request, code: str = Form(...)):
+    _require_operator(request)
+    store.delete_promo_code(code)
+    return RedirectResponse("/admin?promo=deleted#promos", status_code=303)
 
 
 @app.get("/logout")

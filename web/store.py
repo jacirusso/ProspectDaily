@@ -141,6 +141,48 @@ def claim_promo(code: str, customer_id: str) -> bool:
     return n > 0
 
 
+# --- Custom promo codes (managed from the admin dashboard) --------------
+def create_promo_code(code: str, ordered_per_day: int, days: int,
+                      label: str = "") -> bool:
+    """Add a promo code. Returns False if the code already exists."""
+    db.init_schema()
+    code_l = (code or "").strip().lower()
+    if not code_l:
+        return False
+    if not label:
+        label = f"Starter — {days} days" if days else "Starter — no expiry"
+    n = db.execute(
+        "INSERT INTO promo_codes (code, label, ordered_per_day, days, created_at) "
+        "VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+        (code_l, label, int(ordered_per_day or 10), int(days or 0), int(time.time())))
+    return n > 0
+
+
+def get_promo_code(code: str) -> Optional[Dict]:
+    """Look up a DB-backed promo code -> {label, ordered_per_day, days} or None."""
+    db.init_schema()
+    return db.query_one(
+        "SELECT label, ordered_per_day, days FROM promo_codes WHERE code = ?",
+        ((code or "").strip().lower(),))
+
+
+def all_promo_codes() -> List[Dict]:
+    """All DB promo codes, newest first, each flagged whether it's been redeemed."""
+    db.init_schema()
+    rows = db.query("SELECT code, label, ordered_per_day, days, created_at "
+                    "FROM promo_codes ORDER BY created_at DESC")
+    redeemed = {r["code"] for r in db.query("SELECT code FROM promo_redemptions")}
+    for r in rows:
+        r["redeemed"] = r["code"] in redeemed
+    return rows
+
+
+def delete_promo_code(code: str) -> None:
+    db.init_schema()
+    db.execute("DELETE FROM promo_codes WHERE code = ?",
+               ((code or "").strip().lower(),))
+
+
 # --- Runs ---------------------------------------------------------------
 def log_run(customer_id: str, run_date: str, ordered: int, delivered: int,
             csv_path: str, sheet_url: Optional[str],

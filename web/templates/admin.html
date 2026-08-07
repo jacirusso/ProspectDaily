@@ -28,6 +28,41 @@
     Update the rate via <code>DATA_COST_PER_RECORD</code> once the PDL contract is signed.</p>
 </div>
 
+<h2 id="promos" style="margin-top:8px">Promo codes</h2>
+<div class="card">
+  {% if request.query_params.get('promo') == 'added' %}<div class="pill ok" style="display:block;padding:8px 12px;margin-bottom:10px">Promo code added ✓</div>{% endif %}
+  {% if request.query_params.get('promo') == 'exists' %}<div class="error">That code already exists — pick another.</div>{% endif %}
+  {% if request.query_params.get('promo') == 'deleted' %}<div class="pill warn" style="display:block;padding:8px 12px;margin-bottom:10px">Promo code deleted.</div>{% endif %}
+  <p class="muted">Create free-trial codes on the fly — no code changes needed. Each is <strong>single-use</strong>
+    (once someone redeems it, it can't be reused). These work alongside the built-in codes.</p>
+  <form method="post" action="/admin/promo" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:6px">
+    <label style="margin:0">Code<br><input name="code" placeholder="e.g. sarahfree7" required style="min-width:180px"></label>
+    <label style="margin:0">Prospects / day<br><input name="ordered_per_day" type="number" value="10" min="10" step="10" style="width:120px"></label>
+    <label style="margin:0">Days <span class="muted">(0 = never)</span><br><input name="days" type="number" value="7" min="0" style="width:120px"></label>
+    <button class="btn" type="submit">Add code</button>
+  </form>
+
+  {% if promo_codes %}
+  <table style="margin-top:18px">
+    <tr><th>Code</th><th>Plan</th><th>/day</th><th>Days</th><th>Status</th><th></th></tr>
+    {% for p in promo_codes %}
+    <tr>
+      <td><code>{{ p.code }}</code></td>
+      <td>{{ p.label }}</td>
+      <td>{{ p.ordered_per_day }}</td>
+      <td>{{ p.days or '∞' }}</td>
+      <td>{% if p.redeemed %}<span class="pill warn">redeemed</span>{% else %}<span class="pill ok">available</span>{% endif %}</td>
+      <td><form method="post" action="/admin/promo/delete" onsubmit="return confirm('Delete {{ p.code }}?')" style="margin:0">
+        <input type="hidden" name="code" value="{{ p.code }}">
+        <button class="btn secondary small" type="submit">Delete</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted" style="margin-top:12px">No custom codes yet. Your built-in codes (karafree, jacibsu, melissafree7, …) still work.</p>
+  {% endif %}
+</div>
+
 <h2 style="margin-top:8px">Customers</h2>
 <div class="card" style="overflow-x:auto">
   <table>
