@@ -19,6 +19,7 @@ COLUMNS = [
     ("fit_reason", "Why It's a Good Fit"),
     ("intro_email_subject", "Intro Email — Subject"),
     ("intro_email_body", "Intro Email — Body"),
+    ("linkedin_message", "LinkedIn Message"),
 ]
 
 
@@ -167,9 +168,17 @@ body { font-family: 'Liberation Sans','Helvetica Neue',Arial,sans-serif;
 .stats td { padding-right:30px; }
 .stats .n { font-size:16pt; font-weight:800; }
 .stats .l { font-size:7.5pt; letter-spacing:1px; text-transform:uppercase; opacity:.8; }
-.card { border:1px solid #e5e9f0; border-radius:12px; margin-bottom:13px; break-inside:avoid; }
+.card { border:1px solid #e5e9f0; border-radius:12px; margin-bottom:13px;
+  break-before:page; break-inside:avoid; }
 .chead { width:100%; border-collapse:collapse; border-bottom:1px solid #e5e9f0; }
 .chead td { padding:11px 14px; vertical-align:top; }
+.handled { margin-top:8px; font-size:9pt; color:#475569; font-weight:600; }
+.cbox { display:inline-block; width:12px; height:12px; border:1.6px solid #94a3b8;
+  border-radius:3px; vertical-align:-1px; margin-right:5px; }
+.linkedin { background:#eef5fc; border:1px solid #cfe3f7; border-radius:10px;
+  padding:10px 13px; margin-bottom:10px; }
+.lilbl { font-size:7pt; letter-spacing:1.5px; text-transform:uppercase; color:#0a66c2; font-weight:800; }
+.limsg { font-size:10pt; line-height:1.55; color:#1e293b; margin-top:5px; white-space:pre-line; }
 .num { display:inline-block; width:26px; height:26px; line-height:26px; text-align:center;
   background:#2563eb; color:#fff; font-weight:800; border-radius:8px; font-size:11pt; }
 .name { font-size:13pt; font-weight:800; }
@@ -244,17 +253,25 @@ def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
                    f'<td colspan="2">{_cell("ADDRESS", d["company_address"])}</td>'
                    f'</tr></table>')
         body_html = _esc(d.get("intro_email_body", ""))
+        li_msg = _esc(d.get("linkedin_message", ""))
+        li_block = (f'<div class="linkedin"><div class="lilbl">Ready-to-send '
+                    f'LinkedIn message</div><div class="limsg">{li_msg}</div></div>'
+                    if li_msg else "")
+        desc_block = ('<div class="desc">' + _esc(d['company_description']) + '</div>'
+                      if d.get('company_description') else "")
         parts.append(f"""
 <div class="card">
   <table class="chead"><tr>
     <td style="width:38px"><span class="num">{i}</span></td>
     <td><div class="name">{_esc(d['full_name'])}</div><div class="ptitle">{_esc(d['title'])}</div></td>
-    <td class="co"><div class="coname">{_esc(d['company'])}</div><div class="cometa">{meta_line}</div></td>
+    <td class="co"><div class="coname">{_esc(d['company'])}</div><div class="cometa">{meta_line}</div>
+        <div class="handled"><span class="cbox"></span>Handled</div></td>
   </tr></table>
   <div class="body">
     {contact}
-    {'<div class="desc">' + _esc(d['company_description']) + '</div>' if d.get('company_description') else ''}
+    {desc_block}
     <div class="fit"><b>✓ Why it's a fit:</b> {_esc(d['fit_reason'])}</div>
+    {li_block}
     <div class="email">
       <div class="elbl">Ready-to-send intro email</div>
       <div class="esubj">Subject: {_esc(d.get('intro_email_subject',''))}</div>

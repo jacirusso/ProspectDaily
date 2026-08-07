@@ -28,6 +28,7 @@ class Prospect:
     fit_reason: str = ""
     intro_email_subject: str = ""
     intro_email_body: str = ""
+    linkedin_message: str = ""
     tier: str = ""   # "core" | "bonus" | "spare" — which report section it's in
 
     @property

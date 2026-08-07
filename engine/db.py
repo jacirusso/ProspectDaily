@@ -159,6 +159,13 @@ def init_schema() -> None:
             delivered_at  {ts} NOT NULL,
             PRIMARY KEY (customer_id, dedupe_key)
         )""",
+        f"""CREATE TABLE IF NOT EXISTS promo_codes (
+            code            TEXT PRIMARY KEY,
+            label           TEXT NOT NULL DEFAULT '',
+            ordered_per_day {ic} NOT NULL DEFAULT 10,
+            days            {ic} NOT NULL DEFAULT 7,
+            created_at      {ts} NOT NULL
+        )""",
     ]
     # Best-effort migrations for columns added after a table already existed.
     migrations = [

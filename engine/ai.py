@@ -54,7 +54,11 @@ def _fallback(prospect, answers) -> Tuple[str, str, str]:
         f"be worthwhile.\n\n"
         f"{cta}\n\n"
         f"Best,\n{signature}")
-    return fit, subject, body
+    linkedin = (
+        f"Hi {prospect.first_name} — came across {prospect.company} and your work "
+        f"in the {industry} space. I run {answers.get('company_name','our team')}; "
+        f"we help teams like yours with {outcome}. Would love to connect.")
+    return fit, subject, body, linkedin
 
 
 def _claude(prospect, answers) -> Tuple[str, str, str]:
@@ -97,7 +101,10 @@ Return ONLY minified JSON with keys:
   "fit_reason": 1-2 sentences on why this company/person is a strong fit for us,
     citing a specific detail about them.
   "subject": a short, specific subject line (no clickbait, references their world).
-  "body": the email, with real line breaks (\\n), signed by the sender."""
+  "body": the email, with real line breaks (\\n), signed by the sender.
+  "linkedin_message": a LinkedIn connection note UNDER 280 characters (LinkedIn's
+    limit) — casual, first-person, references something specific about their
+    company, ends with a soft ask to connect. NO email-style signature block."""
     body = {
         "model": config.ANTHROPIC_MODEL,
         "max_tokens": 1100,
@@ -117,18 +124,19 @@ Return ONLY minified JSON with keys:
         text = text.strip("`").split("\n", 1)[-1]
     parsed = json.loads(text)
     return (parsed.get("fit_reason", ""), parsed.get("subject", ""),
-            parsed.get("body", ""))
+            parsed.get("body", ""), parsed.get("linkedin_message", ""))
 
 
 def write_for(prospect, answers) -> None:
-    """Fill prospect.fit_reason / intro_email_subject / intro_email_body in place."""
+    """Fill fit_reason / intro_email_* / linkedin_message on the prospect."""
     try:
         if config.ANTHROPIC_API_KEY:
-            fit, subject, body = _claude(prospect, answers)
+            fit, subject, body, linkedin = _claude(prospect, answers)
         else:
-            fit, subject, body = _fallback(prospect, answers)
+            fit, subject, body, linkedin = _fallback(prospect, answers)
     except Exception:
-        fit, subject, body = _fallback(prospect, answers)
+        fit, subject, body, linkedin = _fallback(prospect, answers)
     prospect.fit_reason = fit
     prospect.intro_email_subject = subject
     prospect.intro_email_body = body
+    prospect.linkedin_message = linkedin
