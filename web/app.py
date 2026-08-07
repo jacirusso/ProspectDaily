@@ -199,13 +199,42 @@ def _require_operator(request: Request):
     return user
 
 
+def _promo_rows():
+    """Every promo code (built-in + admin-created) with redemption details."""
+    import datetime
+    from web import promos as pm
+    reds = store.promo_redemptions()
+
+    def fmt(ts):
+        if not ts:
+            return ""
+        return datetime.datetime.fromtimestamp(
+            int(ts), datetime.timezone.utc).strftime("%b %d, %Y")
+
+    def row(code, info, source):
+        r = reds.get(code)
+        return {"code": code, "label": info.get("label", ""),
+                "ordered_per_day": info.get("ordered_per_day", 10),
+                "days": info.get("days") or 0, "source": source,
+                "redeemed": bool(r), "redeemed_by": (r or {}).get("email") or "",
+                "redeemed_when": fmt((r or {}).get("redeemed_at"))}
+
+    rows = [row(c, i, "built-in") for c, i in pm.PROMO_CODES.items()]
+    rows += [row(p["code"], p, "custom") for p in store.all_promo_codes()]
+    # Redeemed first, then available; custom before built-in within each group.
+    rows.sort(key=lambda r: (not r["redeemed"], r["source"] == "built-in", r["code"]))
+    return rows
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
     _require_operator(request)
     customers = store.admin_overview()
+    promos_all = _promo_rows()
     return render(request, "admin.html", customers=customers,
-                  costs=_cost_summary(customers),
-                  promo_codes=store.all_promo_codes())
+                  costs=_cost_summary(customers), promos=promos_all,
+                  promo_stats={"total": len(promos_all),
+                               "redeemed": sum(1 for p in promos_all if p["redeemed"])})
 
 
 @app.post("/admin/promo")

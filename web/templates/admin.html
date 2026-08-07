@@ -42,25 +42,28 @@
     <button class="btn" type="submit">Add code</button>
   </form>
 
-  {% if promo_codes %}
-  <table style="margin-top:18px">
-    <tr><th>Code</th><th>Plan</th><th>/day</th><th>Days</th><th>Status</th><th></th></tr>
-    {% for p in promo_codes %}
+  <p class="muted" style="margin-top:18px;font-size:13px">All codes ({{ promo_stats.total }} total ·
+    <strong>{{ promo_stats.redeemed }} redeemed</strong>). "Built-in" codes live in the app; "custom"
+    ones you created here (and can delete).</p>
+  <div style="overflow-x:auto">
+  <table style="margin-top:4px">
+    <tr><th>Code</th><th>Plan</th><th>/day</th><th>Days</th><th>Type</th><th>Status</th><th>Redeemed by</th><th></th></tr>
+    {% for p in promos %}
     <tr>
       <td><code>{{ p.code }}</code></td>
       <td>{{ p.label }}</td>
       <td>{{ p.ordered_per_day }}</td>
       <td>{{ p.days or '∞' }}</td>
+      <td><span class="muted">{{ p.source }}</span></td>
       <td>{% if p.redeemed %}<span class="pill warn">redeemed</span>{% else %}<span class="pill ok">available</span>{% endif %}</td>
-      <td><form method="post" action="/admin/promo/delete" onsubmit="return confirm('Delete {{ p.code }}?')" style="margin:0">
+      <td>{% if p.redeemed %}{{ p.redeemed_by or '—' }}<br><span class="muted" style="font-size:12px">{{ p.redeemed_when }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td>{% if p.source == 'custom' %}<form method="post" action="/admin/promo/delete" onsubmit="return confirm('Delete {{ p.code }}?')" style="margin:0">
         <input type="hidden" name="code" value="{{ p.code }}">
-        <button class="btn secondary small" type="submit">Delete</button></form></td>
+        <button class="btn secondary small" type="submit">Delete</button></form>{% endif %}</td>
     </tr>
     {% endfor %}
   </table>
-  {% else %}
-  <p class="muted" style="margin-top:12px">No custom codes yet. Your built-in codes (karafree, jacibsu, melissafree7, …) still work.</p>
-  {% endif %}
+  </div>
 </div>
 
 <h2 style="margin-top:8px">Customers</h2>

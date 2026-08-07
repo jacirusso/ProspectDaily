@@ -183,6 +183,16 @@ def delete_promo_code(code: str) -> None:
                ((code or "").strip().lower(),))
 
 
+def promo_redemptions() -> Dict[str, Dict]:
+    """Map of code -> {email, redeemed_at} for every redeemed promo code."""
+    db.init_schema()
+    rows = db.query(
+        "SELECT r.code AS code, r.redeemed_at AS redeemed_at, c.email AS email "
+        "FROM promo_redemptions r LEFT JOIN customers c ON c.id = r.customer_id")
+    return {r["code"]: {"email": r.get("email"), "redeemed_at": r["redeemed_at"]}
+            for r in rows}
+
+
 # --- Runs ---------------------------------------------------------------
 def log_run(customer_id: str, run_date: str, ordered: int, delivered: int,
             csv_path: str, sheet_url: Optional[str],
