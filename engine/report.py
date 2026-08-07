@@ -172,9 +172,11 @@ body { font-family: 'Liberation Sans','Helvetica Neue',Arial,sans-serif;
   break-before:page; break-inside:avoid; }
 .chead { width:100%; border-collapse:collapse; border-bottom:1px solid #e5e9f0; }
 .chead td { padding:11px 14px; vertical-align:top; }
-.handled { margin-top:8px; font-size:9pt; color:#475569; font-weight:600; }
-.cbox { display:inline-block; width:12px; height:12px; border:1.6px solid #94a3b8;
-  border-radius:3px; vertical-align:-1px; margin-right:5px; }
+.notes { margin-top:11px; }
+.noteslbl { font-size:7pt; letter-spacing:1.5px; text-transform:uppercase;
+  color:#64748b; font-weight:800; margin-bottom:5px; }
+.notesbox { width:100%; height:54px; border:1px solid #cbd5e1; border-radius:9px;
+  padding:8px 10px; font-family:inherit; font-size:10pt; color:#1e293b; background:#ffffff; }
 .linkedin { background:#eef5fc; border:1px solid #cfe3f7; border-radius:10px;
   padding:10px 13px; margin-bottom:10px; }
 .lilbl { font-size:7pt; letter-spacing:1.5px; text-transform:uppercase; color:#0a66c2; font-weight:800; }
@@ -264,8 +266,7 @@ def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
   <table class="chead"><tr>
     <td style="width:38px"><span class="num">{i}</span></td>
     <td><div class="name">{_esc(d['full_name'])}</div><div class="ptitle">{_esc(d['title'])}</div></td>
-    <td class="co"><div class="coname">{_esc(d['company'])}</div><div class="cometa">{meta_line}</div>
-        <div class="handled"><span class="cbox"></span>Handled</div></td>
+    <td class="co"><div class="coname">{_esc(d['company'])}</div><div class="cometa">{meta_line}</div></td>
   </tr></table>
   <div class="body">
     {contact}
@@ -277,6 +278,10 @@ def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
       <div class="esubj">Subject: {_esc(d.get('intro_email_subject',''))}</div>
       <div class="emsg">{body_html}</div>
     </div>
+    <form><div class="notes">
+      <div class="noteslbl">Status &amp; next steps</div>
+      <textarea class="notesbox" name="notes_{i}"></textarea>
+    </div></form>
   </div>
 </div>""")
     parts.append('<div class="foot">ProspectDaily · fresh, verified B2B prospects '
