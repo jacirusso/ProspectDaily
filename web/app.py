@@ -20,7 +20,7 @@ from engine import config, db
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe, audience_builder
-from web import store, security, plans, billing, emails, promos, crm
+from web import store, security, plans, billing, emails, promos, crm, affiliates
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -49,8 +49,16 @@ def _fmt_date(ts):
     return datetime.datetime.fromtimestamp(int(ts)).strftime("%b %d, %Y")
 
 
+def _fmt_money(cents):
+    try:
+        return "${:,.2f}".format(int(cents) / 100.0)
+    except (TypeError, ValueError):
+        return "$0.00"
+
+
 templates.env.filters["dt"] = _fmt_datetime
 templates.env.filters["d"] = _fmt_date
+templates.env.filters["money"] = _fmt_money
 
 
 @app.on_event("startup")
@@ -89,11 +97,18 @@ def _leaddaily_visible(user) -> bool:
     return config.LEADDAILY_PUBLIC or _is_operator(user)
 
 
+def _affiliates_visible(user) -> bool:
+    """The affiliate program is operator-only until launch (needs Stripe Connect
+    enabled), unless the AFFILIATES_PUBLIC flag is set."""
+    return config.AFFILIATES_PUBLIC or _is_operator(user)
+
+
 def render(request: Request, name: str, **ctx):
     user = current_user(request)
     ctx.update({"request": request, "user": user,
                 "is_operator": _is_operator(user),
-                "leaddaily_visible": _leaddaily_visible(user)})
+                "leaddaily_visible": _leaddaily_visible(user),
+                "affiliates_visible": _affiliates_visible(user)})
     return templates.TemplateResponse(name, ctx)
 
 
@@ -133,6 +148,13 @@ def signup(request: Request, email: str = Form(...), password: str = Form(...)):
         return render(request, "signup.html", error="That email already has an account.")
     uid = store.create_user(email, security.hash_password(password))
     request.session.update({"uid": uid, "email": email})
+    # Attribute the signup to a referring affiliate if they arrived via a link.
+    ref_code = request.cookies.get(config.REFERRAL_COOKIE, "")
+    if ref_code:
+        try:
+            affiliates.attribute_signup(ref_code, uid, email)
+        except Exception:
+            log.exception("referral attribution failed")
     try:
         emails.send_welcome(store.get_customer(uid))
     except Exception:
@@ -702,6 +724,146 @@ def crm_task_delete(request: Request, task_id: str, back: str = Form("/crm")):
     user, _ = _require_crm(request)
     crm.delete_task(user["id"], task_id)
     return RedirectResponse(back or "/crm", status_code=303)
+
+
+# --- Affiliate program --------------------------------------------------
+def _base_url(request: Request) -> str:
+    return (os.environ.get("APP_BASE_URL", "").rstrip("/")
+            or str(request.base_url).rstrip("/"))
+
+
+def _require_affiliates(request: Request):
+    """Operator-only until the program launches (AFFILIATES_PUBLIC)."""
+    user = require_user(request)
+    if not _affiliates_visible(user):
+        raise HTTPException(404, "Not found")
+    return user
+
+
+@app.get("/r/{code}")
+def referral_link(request: Request, code: str):
+    """An affiliate's share link: drop a 60-day attribution cookie, count the
+    click, and send the visitor to the homepage."""
+    aff = affiliates.get_affiliate_by_code(code)
+    resp = RedirectResponse("/", status_code=303)
+    if aff:
+        try:
+            affiliates.record_click(aff["code"], "/")
+        except Exception:
+            log.exception("click record failed")
+        resp.set_cookie(config.REFERRAL_COOKIE, aff["code"],
+                        max_age=config.REFERRAL_COOKIE_DAYS * 86400,
+                        httponly=True, samesite="lax")
+    return resp
+
+
+@app.get("/affiliates", response_class=HTMLResponse)
+def affiliates_landing(request: Request):
+    user = current_user(request)
+    if not _affiliates_visible(user):
+        raise HTTPException(404, "Not found")
+    aff = affiliates.get_affiliate_by_user(user["id"]) if user else None
+    return render(request, "affiliates.html", is_affiliate=bool(aff),
+                  commission_pct=config.AFFILIATE_COMMISSION_BPS // 100,
+                  hold_days=config.AFFILIATE_HOLD_DAYS,
+                  min_payout=config.AFFILIATE_MIN_PAYOUT_CENTS // 100)
+
+
+@app.post("/affiliate/join")
+def affiliate_join(request: Request):
+    user = _require_affiliates(request)
+    customer = store.get_customer(user["id"])
+    name = (customer["answers"].get("company_name", "") if customer else "")
+    affiliates.create_affiliate(user["id"], user["email"], name)
+    return RedirectResponse("/affiliate", status_code=303)
+
+
+@app.get("/affiliate", response_class=HTMLResponse)
+def affiliate_dashboard(request: Request):
+    user = _require_affiliates(request)
+    aff = affiliates.get_affiliate_by_user(user["id"])
+    if not aff:
+        return RedirectResponse("/affiliates", status_code=303)
+    link = f"{_base_url(request)}/r/{aff['code']}"
+    return render(request, "affiliate.html", aff=aff, link=link,
+                  stats=affiliates.stats(aff["id"]),
+                  bal=affiliates.balances(aff["id"]),
+                  referrals=affiliates.list_referrals(aff["id"]),
+                  commissions=affiliates.list_commissions(aff["id"]),
+                  payouts=affiliates.list_payouts(aff["id"]),
+                  stripe_enabled=plans.stripe_enabled(),
+                  commission_pct=aff["commission_bps"] // 100,
+                  min_payout=config.AFFILIATE_MIN_PAYOUT_CENTS // 100,
+                  hold_days=config.AFFILIATE_HOLD_DAYS)
+
+
+@app.post("/affiliate/connect")
+def affiliate_connect(request: Request):
+    user = _require_affiliates(request)
+    aff = affiliates.get_affiliate_by_user(user["id"])
+    if not aff:
+        return RedirectResponse("/affiliates", status_code=303)
+    if not plans.stripe_enabled():
+        return RedirectResponse("/affiliate?connect=unavailable", status_code=303)
+    try:
+        connect_id = aff["stripe_connect_id"] or billing.create_connect_account(aff)
+        if not aff["stripe_connect_id"]:
+            affiliates.set_connect_account(aff["id"], connect_id, "pending")
+        base = _base_url(request)
+        url = billing.connect_onboarding_url(
+            connect_id, f"{base}/affiliate/connect/refresh",
+            f"{base}/affiliate/connect/return")
+        return RedirectResponse(url, status_code=303)
+    except Exception:
+        log.exception("connect onboarding failed")
+        return RedirectResponse("/affiliate?connect=error", status_code=303)
+
+
+@app.get("/affiliate/connect/refresh")
+def affiliate_connect_refresh(request: Request):
+    user = _require_affiliates(request)
+    aff = affiliates.get_affiliate_by_user(user["id"])
+    if aff and aff["stripe_connect_id"] and plans.stripe_enabled():
+        try:
+            base = _base_url(request)
+            url = billing.connect_onboarding_url(
+                aff["stripe_connect_id"], f"{base}/affiliate/connect/refresh",
+                f"{base}/affiliate/connect/return")
+            return RedirectResponse(url, status_code=303)
+        except Exception:
+            log.exception("connect refresh failed")
+    return RedirectResponse("/affiliate", status_code=303)
+
+
+@app.get("/affiliate/connect/return")
+def affiliate_connect_return(request: Request):
+    user = _require_affiliates(request)
+    aff = affiliates.get_affiliate_by_user(user["id"])
+    if aff and aff["stripe_connect_id"] and plans.stripe_enabled():
+        try:
+            status = billing.connect_status(aff["stripe_connect_id"])
+            affiliates.set_connect_account(aff["id"], aff["stripe_connect_id"], status)
+        except Exception:
+            log.exception("connect status refresh failed")
+    return RedirectResponse("/affiliate?connect=done", status_code=303)
+
+
+@app.get("/admin/affiliates", response_class=HTMLResponse)
+def admin_affiliates(request: Request):
+    _require_operator(request)
+    return render(request, "admin_affiliates.html",
+                  affiliates=affiliates.all_affiliates(),
+                  totals=affiliates.program_totals(),
+                  min_payout=config.AFFILIATE_MIN_PAYOUT_CENTS // 100)
+
+
+@app.post("/admin/affiliates/payout")
+def admin_affiliates_payout(request: Request):
+    _require_operator(request)
+    result = billing.run_affiliate_payouts()
+    return RedirectResponse(
+        f"/admin/affiliates?paid={result.get('paid', 0)}"
+        f"&cands={result.get('candidates', 0)}", status_code=303)
 
 
 # --- run a report now ---------------------------------------------------

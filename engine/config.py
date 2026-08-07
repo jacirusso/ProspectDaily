@@ -159,6 +159,23 @@ OPERATOR_EMAIL = _get("OPERATOR_EMAIL", "jaci@brandstateu.com")
 # to open it to everyone.
 LEADDAILY_PUBLIC = _get("LEADDAILY_PUBLIC", "").strip().lower() in (
     "1", "true", "yes", "on")
+# The affiliate program is likewise operator-only until launch (needs Stripe
+# Connect enabled first). Flip to "true" to open signup to everyone.
+AFFILIATES_PUBLIC = _get("AFFILIATES_PUBLIC", "").strip().lower() in (
+    "1", "true", "yes", "on")
+
+# --- Affiliate program ---------------------------------------------------
+# Commission is a flat share of every successful subscription payment (first
+# payment AND every renewal), for the life of the customer.
+AFFILIATE_COMMISSION_BPS = int(_get("AFFILIATE_COMMISSION_BPS", "2000"))   # 20%
+# A commission is held (pending) this many days before it becomes payable, so a
+# refund inside the window can reverse it before any money goes out.
+AFFILIATE_HOLD_DAYS = int(_get("AFFILIATE_HOLD_DAYS", "30"))
+# Minimum payable balance before the automated sweep pays an affiliate.
+AFFILIATE_MIN_PAYOUT_CENTS = int(_get("AFFILIATE_MIN_PAYOUT_CENTS", "5000"))  # $50
+# How long a referral click is attributed to the affiliate (cookie lifetime).
+REFERRAL_COOKIE_DAYS = int(_get("REFERRAL_COOKIE_DAYS", "60"))
+REFERRAL_COOKIE = "pd_ref"
 # Rough monthly Apollo credit budget (30k/yr ≈ 2500/mo). We estimate usage as
 # "prospects delivered this month" (~1 credit each) and alert past ALERT_PCT.
 APOLLO_MONTHLY_CREDITS = int(_get("APOLLO_MONTHLY_CREDITS", "2500"))

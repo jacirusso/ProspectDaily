@@ -93,6 +93,15 @@ def run_all(run_date: str = None) -> dict:
     except Exception:
         log.exception("credit-usage alert failed")
 
+    # Automated affiliate payouts: transfer cleared commissions (past the hold
+    # window, over the minimum) to affiliates' banks via Stripe Connect.
+    try:
+        from web import billing
+        payout = billing.run_affiliate_payouts()
+        log.info("affiliate payouts: %s", payout)
+    except Exception:
+        log.exception("affiliate payout sweep failed")
+
     summary = {"date": run_date, "customers": len(customers),
                "ok": ok, "failed": failed}
     log.info("done: %s", summary)

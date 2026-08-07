@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Affiliates — Admin{% endblock %}
+{% block wrapclass %}wide{% endblock %}
+{% block body %}
+
+<div class="ld-head">
+  <div><a class="muted" href="/admin" style="font-size:13px">← Admin</a>
+    <h1 style="margin:2px 0 0">Affiliate program</h1></div>
+  <form method="post" action="/admin/affiliates/payout"
+        onsubmit="return confirm('Run automatic payouts now? This transfers cleared balances (${{ min_payout }}+) to affiliates’ banks.')">
+    <button class="btn" type="submit">Run payouts now</button>
+  </form>
+</div>
+
+{% if request.query_params.get('paid') is not none %}
+  <div class="card" style="border-color:#a7f3d0;background:#ecfdf5">
+    <p style="margin:0">Payout sweep complete — <strong>{{ request.query_params.get('paid') }}</strong>
+      affiliate(s) paid of {{ request.query_params.get('cands') }} eligible.</p>
+  </div>
+{% endif %}
+
+<div class="aff-stats">
+  <div class="stat-card"><div class="n">{{ totals.affiliates }}</div><div class="muted">Affiliates</div></div>
+  <div class="stat-card"><div class="n">{{ totals.referrals }}</div><div class="muted">Referrals</div></div>
+  <div class="stat-card"><div class="n">{{ totals.conversions }}</div><div class="muted">Conversions</div></div>
+  <div class="stat-card"><div class="n">{{ totals.owed_cents|money }}</div><div class="muted">Owed (pending)</div></div>
+  <div class="stat-card hi"><div class="n">{{ totals.paid_cents|money }}</div><div class="muted">Paid to date</div></div>
+</div>
+
+<div class="card">
+  <h2>All affiliates</h2>
+  {% if affiliates %}
+    <table>
+      <tr><th>Affiliate</th><th>Code</th><th>Payouts</th><th>Clicks</th><th>Refs</th><th>Paying</th><th>Payable</th><th>Pending</th><th>Paid</th></tr>
+      {% for a in affiliates %}
+      <tr>
+        <td>{{ a.name or a.email }}<div class="muted" style="font-size:12px">{{ a.email }}</div></td>
+        <td><code>{{ a.code }}</code></td>
+        <td>{% if a.connect_status=='active' %}<span class="pill ok">Connected</span>{% elif a.connect_status=='pending' %}<span class="pill warn">Pending</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{{ a.clicks }}</td>
+        <td>{{ a.referrals }}</td>
+        <td>{{ a.conversions }}</td>
+        <td><strong>{{ a.balances.payable|money }}</strong></td>
+        <td>{{ a.balances.pending|money }}</td>
+        <td>{{ a.balances.paid|money }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">No affiliates yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

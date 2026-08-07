@@ -219,6 +219,59 @@ def init_schema() -> None:
             done          {ic} NOT NULL DEFAULT 0,
             created_at    {ts} NOT NULL
         )""",
+        # --- Affiliate program ----------------------------------------
+        f"""CREATE TABLE IF NOT EXISTS affiliates (
+            id               TEXT PRIMARY KEY,
+            user_id          TEXT NOT NULL,
+            email            TEXT NOT NULL DEFAULT '',
+            name             TEXT NOT NULL DEFAULT '',
+            code             TEXT UNIQUE NOT NULL,
+            commission_bps   {ic} NOT NULL DEFAULT 2000,
+            stripe_connect_id TEXT NOT NULL DEFAULT '',
+            connect_status   TEXT NOT NULL DEFAULT 'none',
+            status           TEXT NOT NULL DEFAULT 'active',
+            created_at       {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS referral_clicks (
+            id           TEXT PRIMARY KEY,
+            code         TEXT NOT NULL,
+            landing      TEXT NOT NULL DEFAULT '',
+            created_at   {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS referrals (
+            id                 TEXT PRIMARY KEY,
+            affiliate_id       TEXT NOT NULL,
+            referred_user_id   TEXT UNIQUE NOT NULL,
+            referred_email     TEXT NOT NULL DEFAULT '',
+            stripe_customer_id TEXT NOT NULL DEFAULT '',
+            status             TEXT NOT NULL DEFAULT 'signed_up',
+            created_at         {ts} NOT NULL,
+            converted_at       {ts} NOT NULL DEFAULT 0
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS commissions (
+            id                TEXT PRIMARY KEY,
+            affiliate_id      TEXT NOT NULL,
+            referral_id       TEXT NOT NULL DEFAULT '',
+            stripe_invoice_id TEXT UNIQUE NOT NULL,
+            gross_cents       {ic} NOT NULL DEFAULT 0,
+            amount_cents      {ic} NOT NULL DEFAULT 0,
+            currency          TEXT NOT NULL DEFAULT 'usd',
+            status            TEXT NOT NULL DEFAULT 'pending',
+            earned_at         {ts} NOT NULL,
+            payable_at        {ts} NOT NULL DEFAULT 0,
+            paid_at           {ts} NOT NULL DEFAULT 0,
+            payout_id         TEXT NOT NULL DEFAULT '',
+            created_at        {ts} NOT NULL
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS affiliate_payouts (
+            id                TEXT PRIMARY KEY,
+            affiliate_id      TEXT NOT NULL,
+            amount_cents      {ic} NOT NULL DEFAULT 0,
+            currency          TEXT NOT NULL DEFAULT 'usd',
+            stripe_transfer_id TEXT NOT NULL DEFAULT '',
+            status            TEXT NOT NULL DEFAULT 'pending',
+            created_at        {ts} NOT NULL
+        )""",
     ]
     # Best-effort migrations for columns added after a table already existed.
     migrations = [
@@ -234,6 +287,13 @@ def init_schema() -> None:
         "ON lead_activities (lead_id, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_lead_tasks_cust "
         "ON lead_tasks (customer_id, done, due_at)",
+        "CREATE INDEX IF NOT EXISTS idx_affiliates_user ON affiliates (user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_referrals_affiliate "
+        "ON referrals (affiliate_id)",
+        "CREATE INDEX IF NOT EXISTS idx_referrals_stripe_cust "
+        "ON referrals (stripe_customer_id)",
+        "CREATE INDEX IF NOT EXISTS idx_commissions_affiliate "
+        "ON commissions (affiliate_id, status)",
     ]
     conn = _connect_raw()
     try:
