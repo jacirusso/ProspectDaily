@@ -99,8 +99,10 @@ EMAIL_PROVIDER = _get("EMAIL_PROVIDER", "resend" if _get("RESEND_API_KEY") else 
 RESEND_API_KEY = _get("RESEND_API_KEY")
 # Who reports come from. Until you verify a domain in Resend, use their test
 # sender "onboarding@resend.dev" (can only send to your own account email).
-EMAIL_FROM = _get("EMAIL_FROM", "ProspectDaily <onboarding@resend.dev>")
-EMAIL_REPLY_TO = _get("EMAIL_REPLY_TO")
+# Domain prospectdaily.com is verified in Resend, so we send from it by default.
+# Replies route to the operator's real inbox (no hello@ mailbox needed).
+EMAIL_FROM = _get("EMAIL_FROM", "ProspectDaily <hello@prospectdaily.com>")
+EMAIL_REPLY_TO = _get("EMAIL_REPLY_TO", "jaci@brandstateu.com")
 
 # --- Storage (the dedupe ledger + app data) ------------------------------
 # Local dev uses SQLite. Production sets DATABASE_URL to Postgres.
