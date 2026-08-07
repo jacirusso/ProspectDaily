@@ -80,6 +80,7 @@
 </div>
 {% endif %}
 
+{% if leaddaily_visible %}
 {% if crm_enabled %}
 <div class="card ld-card">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -104,6 +105,7 @@
     go cold — for ${{ leaddaily_price }}/mo.</p>
   <a class="btn" href="/leaddaily">See LeadDaily →</a>
 </div>
+{% endif %}
 {% endif %}
 
 <div class="card">

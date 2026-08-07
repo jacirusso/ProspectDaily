@@ -152,6 +152,13 @@ MAX_PER_COMPANY = int(_get("MAX_PER_COMPANY", "1") or "1")
 # --- Operations / alerts -------------------------------------------------
 # Where operational alerts (failed runs, low Apollo credits) are emailed.
 OPERATOR_EMAIL = _get("OPERATOR_EMAIL", "jaci@brandstateu.com")
+
+# --- Feature flags -------------------------------------------------------
+# LeadDaily (the CRM add-on) is operator-only until launch: hidden from and
+# inaccessible to customers. Flip this to "true" (env var, no redeploy needed)
+# to open it to everyone.
+LEADDAILY_PUBLIC = _get("LEADDAILY_PUBLIC", "").strip().lower() in (
+    "1", "true", "yes", "on")
 # Rough monthly Apollo credit budget (30k/yr ≈ 2500/mo). We estimate usage as
 # "prospects delivered this month" (~1 credit each) and alert past ALERT_PCT.
 APOLLO_MONTHLY_CREDITS = int(_get("APOLLO_MONTHLY_CREDITS", "2500"))

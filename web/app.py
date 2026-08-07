@@ -79,11 +79,21 @@ def require_user(request: Request):
     return user
 
 
+def _is_operator(user) -> bool:
+    return bool(user and user["email"].lower() == config.OPERATOR_EMAIL.lower())
+
+
+def _leaddaily_visible(user) -> bool:
+    """LeadDaily is hidden from customers until launch: operator-only unless the
+    LEADDAILY_PUBLIC flag is set."""
+    return config.LEADDAILY_PUBLIC or _is_operator(user)
+
+
 def render(request: Request, name: str, **ctx):
     user = current_user(request)
     ctx.update({"request": request, "user": user,
-                "is_operator": bool(user and user["email"].lower()
-                                    == config.OPERATOR_EMAIL.lower())})
+                "is_operator": _is_operator(user),
+                "leaddaily_visible": _leaddaily_visible(user)})
     return templates.TemplateResponse(name, ctx)
 
 
@@ -528,10 +538,19 @@ def _parse_due(date_str: str) -> int:
         return 0
 
 
+def _require_leaddaily(request: Request):
+    """LeadDaily is operator-only until launch — hide it entirely from customers,
+    URL included, by 404-ing when it's not visible to this user."""
+    user = require_user(request)
+    if not _leaddaily_visible(user):
+        raise HTTPException(404, "Not found")
+    return user
+
+
 def _require_crm(request: Request):
     """Gate every CRM route on the add-on being enabled. Not enabled -> bounce
     to the LeadDaily upsell page."""
-    user = require_user(request)
+    user = _require_leaddaily(request)
     customer = store.get_customer(user["id"])
     if not customer or not customer.get("crm_enabled"):
         raise HTTPException(status_code=302, headers={"Location": "/leaddaily"})
@@ -540,7 +559,7 @@ def _require_crm(request: Request):
 
 @app.get("/leaddaily", response_class=HTMLResponse)
 def leaddaily_page(request: Request):
-    user = require_user(request)
+    user = _require_leaddaily(request)
     customer = store.get_customer(user["id"])
     return render(request, "leaddaily.html", customer=customer,
                   price=plans.LEADDAILY["price"],
@@ -549,7 +568,7 @@ def leaddaily_page(request: Request):
 
 @app.post("/leaddaily/enable")
 def leaddaily_enable(request: Request):
-    user = require_user(request)
+    user = _require_leaddaily(request)
     customer = store.get_customer(user["id"])
     if customer and customer.get("crm_enabled"):
         return RedirectResponse("/crm", status_code=303)
@@ -570,7 +589,7 @@ def leaddaily_enable(request: Request):
 
 @app.post("/leaddaily/disable")
 def leaddaily_disable(request: Request):
-    user = require_user(request)
+    user = _require_leaddaily(request)
     customer = store.get_customer(user["id"])
     try:
         billing.remove_leaddaily(customer)
