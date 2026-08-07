@@ -39,6 +39,10 @@ def send(to: str, subject: str, html: str, reply_to: str = "") -> bool:
                                  data=json.dumps(body).encode(), method="POST")
     req.add_header("Authorization", f"Bearer {config.RESEND_API_KEY}")
     req.add_header("Content-Type", "application/json")
+    # Resend's API is behind Cloudflare, which 1010-blocks the default urllib
+    # user-agent. Identify ourselves with a browser-shaped UA so sends go through.
+    req.add_header("User-Agent",
+                   "Mozilla/5.0 (compatible; ProspectDailyMailer/1.0; +https://prospectdaily.com)")
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             r.read()
