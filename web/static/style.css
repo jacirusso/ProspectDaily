@@ -95,6 +95,10 @@ th { color: var(--muted); font-weight: 600; }
 .price-card .tier { font-size: 18px; font-weight: 700; }
 .price-card .amt { font-size: 40px; font-weight: 800; margin: 8px 0 2px; }
 .price-card .amt span { font-size: 15px; font-weight: 500; color: var(--muted); }
+/* Price wrapper spans (monthly/annual toggle) keep the large price size;
+   only the nested unit suffix (/mo, /yr) stays small. */
+.price-card .amt .price-monthly, .price-card .amt .price-annual {
+  font-size: 40px; font-weight: 800; color: inherit; }
 .price-card .deliver { color: var(--ok); font-weight: 700; margin: 10px 0; }
 .price-card ul { list-style: none; padding: 0; margin: 14px 0 22px; text-align: left; }
 .price-card li { padding: 6px 0 6px 26px; position: relative; font-size: 14px; }
