@@ -99,8 +99,12 @@ def _leaddaily_visible(user) -> bool:
 
 def _affiliates_visible(user) -> bool:
     """The affiliate program is operator-only until launch (needs Stripe Connect
-    enabled), unless the AFFILIATES_PUBLIC flag is set."""
-    return config.AFFILIATES_PUBLIC or _is_operator(user)
+    enabled), unless the AFFILIATES_PUBLIC flag is set. Anyone the operator has
+    already made an affiliate keeps access to their own dashboard even while the
+    public program stays hidden (so you can invite people one at a time)."""
+    if config.AFFILIATES_PUBLIC or _is_operator(user):
+        return True
+    return bool(user and affiliates.get_affiliate_by_user(user["id"]))
 
 
 def render(request: Request, name: str, **ctx):
@@ -281,8 +285,10 @@ def admin(request: Request):
     _require_operator(request)
     customers = store.admin_overview()
     promos_all = _promo_rows()
+    affiliate_ids = {a["user_id"] for a in affiliates.all_affiliates()}
     return render(request, "admin.html", customers=customers,
                   costs=_cost_summary(customers), promos=promos_all,
+                  affiliate_ids=affiliate_ids, now=int(time.time()),
                   promo_stats={"total": len(promos_all),
                                "redeemed": sum(1 for p in promos_all if p["redeemed"])})
 
@@ -302,6 +308,40 @@ def admin_delete_promo(request: Request, code: str = Form(...)):
     _require_operator(request)
     store.delete_promo_code(code)
     return RedirectResponse("/admin?promo=deleted#promos", status_code=303)
+
+
+@app.post("/admin/customer/extend")
+def admin_customer_extend(request: Request, customer_id: str = Form(...),
+                          days: int = Form(0), comp: str = Form("")):
+    """Extend (or comp) a customer's free access without a new account — sets
+    access_expires_at and reactivates them. `comp=1` = never expires."""
+    _require_operator(request)
+    customer = store.get_customer(customer_id)
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+    if comp == "1":
+        store.update_customer(customer_id, status="active", access_expires_at=0)
+    else:
+        now = int(time.time())
+        base = customer.get("access_expires_at") or 0
+        base = base if base > now else now        # extend from the later of now / current expiry
+        store.update_customer(customer_id, status="active",
+                              access_expires_at=base + int(days) * 86400)
+    return RedirectResponse("/admin?cust=extended#customers", status_code=303)
+
+
+@app.post("/admin/customer/affiliate")
+def admin_customer_make_affiliate(request: Request, customer_id: str = Form(...)):
+    """Turn a specific customer into an affiliate (works even while the public
+    program is gated) so you can invite people one at a time."""
+    _require_operator(request)
+    customer = store.get_customer(customer_id)
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+    name = (customer["answers"].get("company_name", "") if customer.get("answers")
+            else "")
+    affiliates.create_affiliate(customer_id, customer["email"], name)
+    return RedirectResponse("/admin?cust=affiliate#customers", status_code=303)
 
 
 @app.get("/logout")
