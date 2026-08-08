@@ -469,9 +469,9 @@ def dashboard(request: Request):
     upgrades = [p for p in plans.PLANS if p["ordered"] > customer["ordered_per_day"]]
     gen = customer.get("generating_since") or 0
     generating = bool(gen and time.time() - gen < 600)
-    crm_enabled = bool(customer.get("crm_enabled"))
+    # LeadDaily is included free — show the pipeline card to every customer.
     crm_stats = None
-    if crm_enabled:
+    if _leaddaily_visible(user):
         crm_stats = {"open": crm.stage_counts(user["id"])["open"],
                      "due": crm.due_today_count(user["id"]),
                      "available": crm.prospect_counts(user["id"])["available"]}
@@ -479,9 +479,7 @@ def dashboard(request: Request):
                   customer=customer, runs=runs, plan=plan,
                   is_promo=is_promo, upgrades=upgrades,
                   total_delivered=dedupe.total_delivered(user["id"]),
-                  generating=generating,
-                  crm_enabled=crm_enabled, crm_stats=crm_stats,
-                  leaddaily_price=plans.LEADDAILY["price"],
+                  generating=generating, crm_stats=crm_stats,
                   has_answers=bool(customer["answers"]))
 
 
@@ -651,55 +649,20 @@ def _require_leaddaily(request: Request):
 
 
 def _require_crm(request: Request):
-    """Gate every CRM route on the add-on being enabled. Not enabled -> bounce
-    to the LeadDaily upsell page."""
+    """LeadDaily is included free with ProspectDaily, so every customer gets the
+    CRM. Just needs a logged-in customer (and the feature visible for launch)."""
     user = _require_leaddaily(request)
     customer = store.get_customer(user["id"])
-    if not customer or not customer.get("crm_enabled"):
-        raise HTTPException(status_code=302, headers={"Location": "/leaddaily"})
+    if not customer:
+        raise HTTPException(404, "Not found")
     return user, customer
 
 
-@app.get("/leaddaily", response_class=HTMLResponse)
+@app.get("/leaddaily")
 def leaddaily_page(request: Request):
-    user = _require_leaddaily(request)
-    customer = store.get_customer(user["id"])
-    return render(request, "leaddaily.html", customer=customer,
-                  price=plans.LEADDAILY["price"],
-                  enabled=bool(customer and customer.get("crm_enabled")))
-
-
-@app.post("/leaddaily/enable")
-def leaddaily_enable(request: Request):
-    user = _require_leaddaily(request)
-    customer = store.get_customer(user["id"])
-    if customer and customer.get("crm_enabled"):
-        return RedirectResponse("/crm", status_code=303)
-    # Real billing only when Stripe is live, a price is configured, and the
-    # customer has a subscription to attach the add-on to. Otherwise dev/comp
-    # enable (operator dogfood, promo accounts, local dev).
-    if (plans.stripe_enabled() and plans.leaddaily_price_id()
-            and customer and customer.get("stripe_customer_id")):
-        try:
-            billing.add_leaddaily(customer)
-        except Exception:
-            log.exception("LeadDaily add-on billing failed")
-            return RedirectResponse("/leaddaily?error=1", status_code=303)
-    store.update_customer(user["id"], crm_enabled=1)
-    log.info("LeadDaily enabled for %s", user["email"])
-    return RedirectResponse("/crm?welcome=1", status_code=303)
-
-
-@app.post("/leaddaily/disable")
-def leaddaily_disable(request: Request):
-    user = _require_leaddaily(request)
-    customer = store.get_customer(user["id"])
-    try:
-        billing.remove_leaddaily(customer)
-    except Exception:
-        log.exception("LeadDaily add-on removal failed (continuing to disable)")
-    store.update_customer(user["id"], crm_enabled=0)
-    return RedirectResponse("/leaddaily?disabled=1", status_code=303)
+    """LeadDaily is now included free — no purchase step. Send them to the pipeline."""
+    _require_leaddaily(request)
+    return RedirectResponse("/crm", status_code=303)
 
 
 @app.get("/crm", response_class=HTMLResponse)
