@@ -13,6 +13,27 @@ from typing import Tuple
 from . import config
 
 
+def anthropic_chat(system: str, messages: list, max_tokens: int = 600) -> str:
+    """Generic Claude call with a system prompt + a message list
+    ([{role, content}, ...]). Returns the assistant's text. Raises on failure so
+    callers can handle it. Used by the support chat agent."""
+    body = {
+        "model": config.ANTHROPIC_MODEL,
+        "max_tokens": max_tokens,
+        "system": system,
+        "messages": messages,
+    }
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=json.dumps(body).encode(), method="POST")
+    req.add_header("content-type", "application/json")
+    req.add_header("x-api-key", config.ANTHROPIC_API_KEY)
+    req.add_header("anthropic-version", "2023-06-01")
+    with urllib.request.urlopen(req, timeout=45) as resp:
+        data = json.loads(resp.read().decode())
+    return "".join(b.get("text", "") for b in data.get("content", [])).strip()
+
+
 def _tone_line(tone: str) -> str:
     return {
         "Warm & consultative": "warm, helpful, and consultative",

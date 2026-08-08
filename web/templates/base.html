@@ -42,5 +42,6 @@
     {% block body %}{% endblock %}
   </div>
   {% endblock %}
+  {% if chat_enabled %}{% include "chat_widget.html" %}{% endif %}
 </body>
 </html>

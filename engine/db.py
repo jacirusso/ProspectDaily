@@ -281,6 +281,25 @@ def init_schema() -> None:
             text          TEXT NOT NULL DEFAULT '',
             created_at    {ts} NOT NULL
         )""",
+        # AI support chat: conversations + their messages, kept so the operator
+        # gets a daily digest and can see what people ask.
+        f"""CREATE TABLE IF NOT EXISTS chat_conversations (
+            id            TEXT PRIMARY KEY,
+            session_id    TEXT NOT NULL DEFAULT '',
+            context       TEXT NOT NULL DEFAULT 'site',
+            customer_id   TEXT NOT NULL DEFAULT '',
+            email         TEXT NOT NULL DEFAULT '',
+            msg_count     {ic} NOT NULL DEFAULT 0,
+            created_at    {ts} NOT NULL,
+            last_at       {ts} NOT NULL DEFAULT 0
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS chat_messages (
+            id              TEXT PRIMARY KEY,
+            conversation_id TEXT NOT NULL,
+            role            TEXT NOT NULL DEFAULT 'user',
+            content         TEXT NOT NULL DEFAULT '',
+            created_at      {ts} NOT NULL
+        )""",
     ]
     # Best-effort migrations for columns added after a table already existed.
     migrations = [

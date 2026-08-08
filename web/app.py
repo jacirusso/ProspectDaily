@@ -20,7 +20,7 @@ from engine import config, db, voice
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe, audience_builder
-from web import store, security, plans, billing, emails, promos, crm, affiliates
+from web import store, security, plans, billing, emails, promos, crm, affiliates, chat
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -107,12 +107,18 @@ def _affiliates_visible(user) -> bool:
     return bool(user and affiliates.get_affiliate_by_user(user["id"]))
 
 
+def _chat_visible(user) -> bool:
+    """The support chat is operator-only until launch (SUPPORT_CHAT_PUBLIC)."""
+    return config.SUPPORT_CHAT_PUBLIC or _is_operator(user)
+
+
 def render(request: Request, name: str, **ctx):
     user = current_user(request)
     ctx.update({"request": request, "user": user,
                 "is_operator": _is_operator(user),
                 "leaddaily_visible": _leaddaily_visible(user),
-                "affiliates_visible": _affiliates_visible(user)})
+                "affiliates_visible": _affiliates_visible(user),
+                "chat_enabled": _chat_visible(user)})
     return templates.TemplateResponse(name, ctx)
 
 
@@ -1021,6 +1027,29 @@ def privacy(request: Request):
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request):
     return render(request, "terms.html")
+
+
+@app.post("/chat")
+async def chat_endpoint(request: Request):
+    """The AI support agent. JSON in {session_id, message}, JSON out {reply,
+    session_id}. Operator-only until SUPPORT_CHAT_PUBLIC is set."""
+    user = current_user(request)
+    if not _chat_visible(user):
+        raise HTTPException(404, "Not found")
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON")
+    session_id = str(data.get("session_id") or "")[:64]
+    message = str(data.get("message") or "")
+    customer = None
+    if user:
+        c = store.get_customer(user["id"])
+        if c:
+            customer = {"id": c["id"], "email": c["email"],
+                        "plan": c.get("plan"), "status": c.get("status")}
+    result = chat.handle(session_id, message, "app" if user else "site", customer)
+    return result
 
 
 @app.get("/healthz")
