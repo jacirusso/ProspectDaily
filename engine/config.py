@@ -163,6 +163,11 @@ LEADDAILY_PUBLIC = _get("LEADDAILY_PUBLIC", "").strip().lower() in (
 # Connect enabled first). Flip to "true" to open signup to everyone.
 AFFILIATES_PUBLIC = _get("AFFILIATES_PUBLIC", "").strip().lower() in (
     "1", "true", "yes", "on")
+# The AI support chat is operator-only until launch (so the agent's answers can
+# be reviewed and it isn't hit by anonymous traffic). Flip to "true" to show the
+# chat widget to everyone (site visitors + logged-in customers).
+SUPPORT_CHAT_PUBLIC = _get("SUPPORT_CHAT_PUBLIC", "").strip().lower() in (
+    "1", "true", "yes", "on")
 
 # --- Affiliate program ---------------------------------------------------
 # Commission is a flat share of every successful subscription payment (first

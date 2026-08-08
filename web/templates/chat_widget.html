@@ -1,0 +1,117 @@
+<div id="pdchat">
+  <button id="pdchat-toggle" aria-label="Open chat" type="button">
+    <span id="pdchat-open">💬 Chat with us</span>
+    <span id="pdchat-close" style="display:none">✕</span>
+  </button>
+  <div id="pdchat-panel" role="dialog" aria-label="Support chat">
+    <div id="pdchat-head">
+      <div>
+        <div class="pdchat-title">ProspectDaily Assistant</div>
+        <div class="pdchat-sub">Ask about setup, pricing, anything</div>
+      </div>
+    </div>
+    <div id="pdchat-msgs"></div>
+    <form id="pdchat-form" autocomplete="off">
+      <input id="pdchat-input" type="text" placeholder="Type your question…" maxlength="2000" required>
+      <button type="submit" id="pdchat-send" aria-label="Send">➤</button>
+    </form>
+    <div id="pdchat-foot">AI assistant. It won't ask for passwords or payment info.</div>
+  </div>
+</div>
+<style>
+  #pdchat-toggle { position: fixed; right: 20px; bottom: 20px; z-index: 9999;
+    background: #2563eb; color: #fff; border: none; border-radius: 999px;
+    padding: 12px 18px; font: inherit; font-weight: 700; font-size: 14px;
+    cursor: pointer; box-shadow: 0 8px 24px rgba(37,99,235,.35); }
+  #pdchat-toggle:hover { filter: brightness(1.06); }
+  #pdchat-panel { position: fixed; right: 20px; bottom: 76px; z-index: 9999;
+    width: 360px; max-width: calc(100vw - 32px); height: 480px; max-height: calc(100vh - 120px);
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; display: none;
+    flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(15,23,42,.25); }
+  #pdchat-panel.open { display: flex; }
+  #pdchat-head { background: linear-gradient(135deg,#1e3a8a,#2563eb); color: #fff; padding: 14px 16px; }
+  .pdchat-title { font-weight: 800; font-size: 15px; }
+  .pdchat-sub { font-size: 12px; opacity: .9; margin-top: 1px; }
+  #pdchat-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex;
+    flex-direction: column; gap: 10px; background: #f7f8fb; }
+  .pdchat-msg { max-width: 84%; padding: 9px 12px; border-radius: 12px; font-size: 14px;
+    line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; }
+  .pdchat-msg.bot { background: #fff; border: 1px solid #e5e7eb; align-self: flex-start;
+    border-bottom-left-radius: 4px; }
+  .pdchat-msg.me { background: #2563eb; color: #fff; align-self: flex-end;
+    border-bottom-right-radius: 4px; }
+  .pdchat-typing { color: #6b7280; font-size: 13px; align-self: flex-start; }
+  #pdchat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #e5e7eb; background: #fff; }
+  #pdchat-input { flex: 1; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px;
+    font: inherit; font-size: 14px; }
+  #pdchat-send { background: #2563eb; color: #fff; border: none; border-radius: 10px;
+    width: 42px; font-size: 16px; cursor: pointer; }
+  #pdchat-send:disabled { opacity: .5; cursor: default; }
+  #pdchat-foot { font-size: 10.5px; color: #94a3b8; text-align: center; padding: 6px 10px 10px; background:#fff; }
+  @media (max-width: 600px) { #pdchat-panel { right: 8px; bottom: 72px; } }
+</style>
+<script>
+(function(){
+  var K_SESS = 'pd_chat_session', K_MSGS = 'pd_chat_msgs';
+  var panel = document.getElementById('pdchat-panel');
+  var toggle = document.getElementById('pdchat-toggle');
+  var msgsEl = document.getElementById('pdchat-msgs');
+  var form = document.getElementById('pdchat-form');
+  var input = document.getElementById('pdchat-input');
+  var sendBtn = document.getElementById('pdchat-send');
+  var openIcon = document.getElementById('pdchat-open');
+  var closeIcon = document.getElementById('pdchat-close');
+  var GREETING = "Hi! I'm the ProspectDaily assistant. Ask me anything about how it works, pricing, or getting set up.";
+
+  function sessionId(){ var s = localStorage.getItem(K_SESS); if(!s){ s = (Date.now().toString(36)+Math.random().toString(36).slice(2,10)); localStorage.setItem(K_SESS, s); } return s; }
+  function loadMsgs(){ try { return JSON.parse(localStorage.getItem(K_MSGS)||'[]'); } catch(e){ return []; } }
+  function saveMsgs(m){ try { localStorage.setItem(K_MSGS, JSON.stringify(m.slice(-60))); } catch(e){} }
+  function esc(t){ var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+  function render(){
+    var m = loadMsgs();
+    msgsEl.innerHTML = '';
+    if(!m.length){ addBubble('bot', GREETING, false); }
+    m.forEach(function(x){ addBubble(x.role==='me'?'me':'bot', x.text, false); });
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  function addBubble(cls, text, save){
+    var d = document.createElement('div');
+    d.className = 'pdchat-msg ' + cls;
+    d.innerHTML = esc(text);
+    msgsEl.appendChild(d);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    if(save){ var m = loadMsgs(); m.push({role: cls==='me'?'me':'bot', text: text}); saveMsgs(m); }
+  }
+
+  toggle.addEventListener('click', function(){
+    var open = panel.classList.toggle('open');
+    openIcon.style.display = open ? 'none' : '';
+    closeIcon.style.display = open ? '' : 'none';
+    if(open){ render(); input.focus(); }
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var text = input.value.trim();
+    if(!text) return;
+    addBubble('me', text, true);
+    input.value = '';
+    sendBtn.disabled = true;
+    var typing = document.createElement('div');
+    typing.className = 'pdchat-typing'; typing.textContent = 'typing…';
+    msgsEl.appendChild(typing); msgsEl.scrollTop = msgsEl.scrollHeight;
+
+    fetch('/chat', { method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ session_id: sessionId(), message: text }) })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        typing.remove();
+        if(d && d.session_id){ localStorage.setItem(K_SESS, d.session_id); }
+        addBubble('bot', (d && d.reply) || 'Sorry, something went wrong. Try again.', true);
+      })
+      .catch(function(){ typing.remove(); addBubble('bot', 'Sorry, I could not reach the server. Please try again.', true); })
+      .finally(function(){ sendBtn.disabled = false; input.focus(); });
+  });
+})();
+</script>
