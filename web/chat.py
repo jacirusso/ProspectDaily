@@ -115,3 +115,65 @@ def handle(session_id: str, message: str, context: str,
                 "at jaci@brandstateu.com and they'll help you out.")
     _add_message(conv["id"], "assistant", text)
     return {"reply": text, "session_id": conv["session_id"]}
+
+
+# --- Daily digest to the operator --------------------------------------
+def _esc(s: str) -> str:
+    return (str(s or "").replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;"))
+
+
+def _transcript(convs: List[Dict]) -> str:
+    out = []
+    for c in convs:
+        who = c["email"] or f"visitor ({c['context']})"
+        out.append(f"=== {who} [{c['context']}] ===")
+        rows = db.query("SELECT role, content FROM chat_messages "
+                        "WHERE conversation_id = ? ORDER BY created_at, id",
+                        (c["id"],))
+        for m in rows:
+            out.append(f"{m['role'].upper()}: {m['content']}")
+        out.append("")
+    return "\n".join(out)
+
+
+def send_daily_digest(hours: int = 24) -> Dict:
+    """Summarize the last `hours` of chats and email the operator. No email when
+    there were no conversations. Called from the daily cron."""
+    db.init_schema()
+    since = int(time.time()) - hours * 3600
+    convs = db.query("SELECT * FROM chat_conversations WHERE last_at >= ? "
+                     "ORDER BY last_at DESC", (since,))
+    if not convs:
+        return {"conversations": 0, "sent": False}
+    transcript = _transcript(convs)
+
+    summary_html = "<p><em>Summary unavailable; see transcripts below.</em></p>"
+    try:
+        s = ai.anthropic_chat(
+            "You summarize a day of customer support chats for the business owner. "
+            "Be brief and practical. Never use em-dashes.",
+            [{"role": "user", "content":
+              "Summarize today's ProspectDaily support chats. Give: (1) a 2 to 3 "
+              "sentence overview, (2) the common questions or themes, (3) any "
+              "suggestions or feature requests, (4) anyone who needs a follow-up "
+              "and their email if they gave one. Transcripts:\n\n"
+              + transcript[:12000]}],
+            max_tokens=700)
+        if s:
+            summary_html = "<p>" + _esc(s).replace("\n", "<br>") + "</p>"
+    except Exception:
+        pass
+
+    body = (f"<p><strong>{len(convs)}</strong> conversation(s) in the last "
+            f"{hours} hours.</p><h3>Summary</h3>{summary_html}"
+            f"<h3>Transcripts</h3>"
+            f"<pre style='white-space:pre-wrap;font-size:13px;color:#334155'>"
+            f"{_esc(transcript[:20000])}</pre>")
+    try:
+        from web import emails
+        emails.alert_operator(
+            f"ProspectDaily chat digest: {len(convs)} conversation(s)", body)
+    except Exception:
+        return {"conversations": len(convs), "sent": False}
+    return {"conversations": len(convs), "sent": True}
