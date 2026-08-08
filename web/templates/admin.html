@@ -19,14 +19,25 @@
 </div>
 
 <div class="card">
-  <h2>📊 Data usage this month</h2>
+  <h2>📊 Data cost this month</h2>
+  {% if costs.data_provider == 'apollo' %}
+  <p class="muted" style="margin-top:8px">
+    <strong>Apollo</strong> <span class="pill ok">interim</span> — prepaid bundle:
+    <strong>${{ costs.data_annual }}</strong> for {{ "{:,}".format(costs.data_credits) }} credits →
+    <strong>${{ costs.data|round|int }}/mo</strong> amortized.
+    {{ costs.data_records }} records delivered this month (~${{ costs.data_rate }}/record effective).
+  </p>
+  <p class="muted" style="font-size:13px">Since the bundle is prepaid, this is a flat monthly cost regardless of volume.
+    Switching to <strong>PDL</strong> later moves data cost to ~${{ costs.pdl_rate }}/record (usage-based).
+    Adjust via <code>APOLLO_ANNUAL_COST</code> if the bundle changes.</p>
+  {% else %}
   <p class="muted" style="margin-top:8px">
     <strong>{{ costs.data_records }}</strong> prospect records delivered ·
-    est. <strong>${{ costs.data }}</strong> in data cost
-    (@ ${{ costs.data_rate }}/record).
+    est. <strong>${{ costs.data }}</strong> in data cost (@ ${{ costs.data_rate }}/record).
   </p>
   <p class="muted" style="font-size:13px">Pay-per-record (no fixed monthly ceiling).
-    Update the rate via <code>DATA_COST_PER_RECORD</code> once the PDL contract is signed.</p>
+    Update the rate via <code>DATA_COST_PER_RECORD</code>.</p>
+  {% endif %}
 </div>
 
 <h2 id="promos" style="margin-top:8px">Promo codes</h2>
@@ -99,12 +110,21 @@
           <input type="number" name="days" value="365" min="1" style="width:66px;padding:4px 6px">
           <button class="btn secondary small" type="submit">+days</button>
         </form>
+        {% if c.comp %}
+        <form method="post" action="/admin/customer/extend" style="margin:4px 0 0">
+          <input type="hidden" name="customer_id" value="{{ c.id }}">
+          <input type="hidden" name="comp" value="0">
+          <span class="pill ok" title="Free — not counted as revenue">comp (free)</span>
+          <button class="btn secondary small" type="submit">Un-comp</button>
+        </form>
+        {% else %}
         <form method="post" action="/admin/customer/extend" style="margin:4px 0 0"
-              onsubmit="return confirm('Give {{ c.email }} free access that never expires?')">
+              onsubmit="return confirm('Give {{ c.email }} free access that never expires (and not counted as a paying subscriber)?')">
           <input type="hidden" name="customer_id" value="{{ c.id }}">
           <input type="hidden" name="comp" value="1">
           <button class="btn secondary small" type="submit">Comp ∞</button>
         </form>
+        {% endif %}
       </td>
       <td>
         {% if c.id in affiliate_ids %}<span class="pill ok">✓ affiliate</span>

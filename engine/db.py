@@ -280,6 +280,7 @@ def init_schema() -> None:
         f"ALTER TABLE customers ADD COLUMN generating_since {ts} NOT NULL DEFAULT 0",
         "ALTER TABLE customers ADD COLUMN apollo_api_key TEXT NOT NULL DEFAULT ''",
         f"ALTER TABLE customers ADD COLUMN crm_enabled {ic} NOT NULL DEFAULT 0",
+        f"ALTER TABLE customers ADD COLUMN comp {ic} NOT NULL DEFAULT 0",
         "CREATE INDEX IF NOT EXISTS idx_report_prospects_cust "
         "ON report_prospects (customer_id, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_leads_cust ON leads (customer_id, stage)",
