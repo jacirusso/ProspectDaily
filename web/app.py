@@ -163,7 +163,9 @@ def signup(request: Request, email: str = Form(...), password: str = Form(...)):
         emails.send_welcome(store.get_customer(uid))
     except Exception:
         log.exception("welcome email failed")
-    return RedirectResponse("/questionnaire", status_code=303)
+    # Step 1 of setup is entering your website (the AI builds the audience from it);
+    # the manual form is the fallback, linked from there.
+    return RedirectResponse("/audience", status_code=303)
 
 
 @app.get("/login", response_class=HTMLResponse)

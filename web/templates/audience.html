@@ -2,14 +2,15 @@
 {% block title %}Build Your Audience{% endblock %}
 {% block body %}
 <div class="card">
-  <span class="pill ok">✨ AI Audience Builder</span>
-  <h1>Let's find your best prospects</h1>
-  <p class="muted">Paste your website and our AI reads it, then proposes target-audience
-    segments — each scored and sized with real prospect counts. Pick the one to pursue.</p>
+  <span class="pill warn">Step 1</span>
+  <h1>Start with your website</h1>
+  <p class="muted">Enter your website below. We read it and build target-audience
+    options for you, each scored and sized with real prospect counts. Pick the one
+    to pursue. It's the fastest way to set up, and you can fine-tune it anytime.</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" action="/audience" onsubmit="return abStart(this)">
-    <label>Your website
-      <input type="text" name="website" value="{{ website }}" placeholder="https://yourcompany.com" required>
+    <label style="font-size:16px">Your website <span class="help">This is your first step. Paste your homepage or About page URL.</span>
+      <input type="text" name="website" value="{{ website }}" placeholder="https://yourcompany.com" required autofocus>
     </label>
     <label>Anything to add about who you sell to? <span class="help">Optional — helps tune the segments.</span>
       <textarea name="offer" placeholder="e.g. We sell to marketing leaders at mid-market SaaS companies"></textarea>
