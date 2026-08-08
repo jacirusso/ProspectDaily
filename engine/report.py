@@ -135,9 +135,10 @@ def html_report(prospects, heading: str) -> str:
   <tr><td style="background-color:{_FIT_BG};padding:10px 16px;font-size:11pt;">
     <b style="color:{_FIT_INK};">✓ Why it's a good fit:</b> {_esc(d['fit_reason'])}</td></tr>
   <tr><td style="background-color:{_EMAIL_BG};padding:12px 16px;">
-    <p style="margin:0 0 6px 0;color:{_MUTED};font-size:9pt;letter-spacing:1px;">READY-TO-SEND INTRO EMAIL</p>
+    <p style="margin:0 0 6px 0;color:{_MUTED};font-size:9pt;letter-spacing:1px;">INTRO EMAIL · BONUS DRAFT</p>
     <p style="margin:0 0 8px 0;font-weight:bold;font-size:11pt;color:{_INK};">Subject: {_esc(d.get('intro_email_subject',''))}</p>
     <p style="margin:0;font-size:11pt;color:{_INK};line-height:1.5;">{body_html}</p>
+    <p style="margin:8px 0 0;color:{_MUTED};font-size:9pt;font-style:italic;">A starting point, not a finished email. Edit it to your voice before sending.</p>
   </td></tr>
 </table>
 <p style="margin:6px 0;">&nbsp;</p>""")
@@ -202,6 +203,11 @@ body { font-family: 'Liberation Sans','Helvetica Neue',Arial,sans-serif;
 .elbl { font-size:7pt; letter-spacing:1.5px; text-transform:uppercase; color:#2563eb; font-weight:800; }
 .esubj { font-weight:700; font-size:10pt; margin:5px 0 6px; }
 .emsg { font-size:10pt; line-height:1.55; white-space:pre-line; color:#1e293b; }
+.bonustag { display:inline-block; background:#fef3c7; color:#92400e; font-size:6.5pt;
+  font-weight:800; letter-spacing:1pt; text-transform:uppercase; padding:1px 6px;
+  border-radius:5px; margin-left:6px; vertical-align:middle; }
+.bonusnote { font-size:8pt; color:#64748b; margin-top:6px; font-style:italic; }
+.covernote { font-size:8.5pt; opacity:.92; margin-top:11px; line-height:1.45; max-width:82%; }
 .foot { text-align:center; color:#94a3b8; font-size:8pt; margin-top:8px; }
 """
 
@@ -238,7 +244,11 @@ def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
              f'<td><div class="n">{n}</div><div class="l">Prospects</div></td>',
              f'<td><div class="n">{n}</div><div class="l">Net-new today</div></td>',
              '<td><div class="n">100%</div><div class="l">Verified email</div></td>',
-             '</tr></table></div>']
+             '</tr></table>',
+             '<div class="covernote">The verified contacts and company intel below are '
+             'the core of your report. The draft email and LinkedIn note on each are a '
+             'bonus starting point. Edit them to your own voice before sending.</div>',
+             '</div>']
     for i, p in enumerate(prospects, 1):
         d = p.to_dict()
         meta = []
@@ -256,8 +266,9 @@ def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
                    f'</tr></table>')
         body_html = _esc(d.get("intro_email_body", ""))
         li_msg = _esc(d.get("linkedin_message", ""))
-        li_block = (f'<div class="linkedin"><div class="lilbl">Ready-to-send '
-                    f'LinkedIn message</div><div class="limsg">{li_msg}</div></div>'
+        li_block = (f'<div class="linkedin"><div class="lilbl">LinkedIn note'
+                    f'<span class="bonustag">Bonus draft</span></div>'
+                    f'<div class="limsg">{li_msg}</div></div>'
                     if li_msg else "")
         desc_block = ('<div class="desc">' + _esc(d['company_description']) + '</div>'
                       if d.get('company_description') else "")
@@ -274,9 +285,10 @@ def pdf_html(prospects, company_name: str = "", run_date: str = "") -> str:
     <div class="fit"><b>✓ Why it's a fit:</b> {_esc(d['fit_reason'])}</div>
     {li_block}
     <div class="email">
-      <div class="elbl">Ready-to-send intro email</div>
+      <div class="elbl">Intro email<span class="bonustag">Bonus draft</span></div>
       <div class="esubj">Subject: {_esc(d.get('intro_email_subject',''))}</div>
       <div class="emsg">{body_html}</div>
+      <div class="bonusnote">A starting point, not a finished email. Edit it to your voice before sending.</div>
     </div>
     <form><div class="notes">
       <div class="noteslbl">Status &amp; next steps</div>
