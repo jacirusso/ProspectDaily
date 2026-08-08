@@ -222,7 +222,8 @@ def _cost_summary(customers):
     import datetime
     price = {p["key"]: p["price"] for p in plans.PLANS}
     active = [c for c in customers if c["status"] == "active"]
-    paying = [c for c in active if c["plan"] in price]
+    # A comped/test account carries a plan key but pays nothing — never revenue.
+    paying = [c for c in active if c["plan"] in price and not c.get("comp")]
     revenue = sum(price[c["plan"]] for c in paying)
     claude = sum(config.CLAUDE_COST_PER_10_PER_MONTH * (c["ordered_per_day"] / 10.0)
                  for c in active)
@@ -232,7 +233,17 @@ def _cost_summary(customers):
     month_start = int(datetime.datetime(now.year, now.month, 1,
                       tzinfo=datetime.timezone.utc).timestamp())
     records = store.prospects_delivered_since(month_start)
-    data_cost = records * config.DATA_COST_PER_RECORD
+    # Data cost depends on the active provider. Apollo is a PREPAID annual bundle
+    # (Jaci's 30k credits) — the real monthly expense is that flat cost amortized,
+    # not a per-record charge. PDL (the future, pricier option) bills per record.
+    provider = (config.DATA_PROVIDER or "").lower()
+    if provider == "apollo":
+        data_cost = config.APOLLO_ANNUAL_COST / 12.0
+        data_rate = (config.APOLLO_ANNUAL_COST / config.APOLLO_ANNUAL_CREDITS
+                     if config.APOLLO_ANNUAL_CREDITS else 0)
+    else:
+        data_cost = records * config.DATA_COST_PER_RECORD
+        data_rate = config.DATA_COST_PER_RECORD
     total_cost = config.MONTHLY_FIXED_COST + claude + stripe_fees + data_cost
     margin = revenue - total_cost
     return {
@@ -240,7 +251,10 @@ def _cost_summary(customers):
         "revenue": round(revenue), "fixed": round(config.MONTHLY_FIXED_COST),
         "claude": round(claude, 2), "stripe": round(stripe_fees, 2),
         "data": round(data_cost, 2), "data_records": records,
-        "data_rate": config.DATA_COST_PER_RECORD,
+        "data_rate": round(data_rate, 4), "data_provider": provider,
+        "data_annual": round(config.APOLLO_ANNUAL_COST),
+        "data_credits": config.APOLLO_ANNUAL_CREDITS,
+        "pdl_rate": config.DATA_COST_PER_RECORD,
         "total_cost": round(total_cost), "margin": round(margin),
         "margin_pct": round(margin / revenue * 100) if revenue else 0,
     }
@@ -313,14 +327,18 @@ def admin_delete_promo(request: Request, code: str = Form(...)):
 @app.post("/admin/customer/extend")
 def admin_customer_extend(request: Request, customer_id: str = Form(...),
                           days: int = Form(0), comp: str = Form("")):
-    """Extend (or comp) a customer's free access without a new account — sets
-    access_expires_at and reactivates them. `comp=1` = never expires."""
+    """Extend / comp / un-comp a customer's free access without a new account.
+    `comp=1` = free forever + never counted as revenue; `comp=0` = un-comp
+    (revert to a normal, counted account); otherwise extend by `days`."""
     _require_operator(request)
     customer = store.get_customer(customer_id)
     if not customer:
         raise HTTPException(404, "Customer not found")
     if comp == "1":
-        store.update_customer(customer_id, status="active", access_expires_at=0)
+        store.update_customer(customer_id, status="active",
+                              access_expires_at=0, comp=1)
+    elif comp == "0":
+        store.update_customer(customer_id, comp=0)
     else:
         now = int(time.time())
         base = customer.get("access_expires_at") or 0

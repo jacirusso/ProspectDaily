@@ -187,6 +187,11 @@ CLAUDE_COST_PER_10_PER_MONTH = float(_get("CLAUDE_COST_PER_10_PER_MONTH", "3"))
 # 20-24c/record on annual, email+phone included in the base credit. Using the
 # annual list midpoint; first year is ~30% less with Amanda's promo code.
 DATA_COST_PER_RECORD = float(_get("DATA_COST_PER_RECORD", "0.22"))
+# Apollo is the interim provider: a PREPAID annual credit bundle. The admin cost
+# tracker amortizes this flat cost (÷12) while DATA_PROVIDER=apollo, instead of
+# charging the PDL per-record rate. Jaci paid $588 for 30,000 credits.
+APOLLO_ANNUAL_COST = float(_get("APOLLO_ANNUAL_COST", "588"))
+APOLLO_ANNUAL_CREDITS = int(_get("APOLLO_ANNUAL_CREDITS", "30000"))
 STRIPE_PCT = 0.029
 STRIPE_FLAT = 0.30
 
