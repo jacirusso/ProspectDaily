@@ -61,8 +61,33 @@ def _fallback(prospect, answers) -> Tuple[str, str, str]:
     return fit, subject, body, linkedin
 
 
+def _voice_block(answers) -> str:
+    """Assemble the sender's voice guidance (profile sample + tone notes + real
+    examples they've approved) so the draft sounds like THEM, not like AI."""
+    sample = (answers.get("voice_sample") or "").strip()
+    notes = (answers.get("voice_notes") or "").strip()
+    examples = answers.get("_voice_examples") or []
+    if not (sample or notes or examples):
+        return ""
+    out = ["\nMATCH THE SENDER'S OWN VOICE. Mirror how this specific person writes: "
+           "sentence length, warmth, formality, punctuation habits, and word choices. "
+           "Write NEW copy for THIS prospect in that voice; do not copy the samples "
+           "verbatim."]
+    if notes:
+        out.append(f"Their tone notes: {notes}")
+    if sample:
+        out.append(f"A sample of how they write:\n\"\"\"\n{sample}\n\"\"\"")
+    if examples:
+        ex = "\n".join(f"- ({e.get('kind', 'email')}) {e.get('text', '')}"
+                       for e in examples[:3])
+        out.append("Outreach they've written or approved before. Match this style "
+                   f"closely:\n{ex}")
+    return "\n".join(out) + "\n"
+
+
 def _claude(prospect, answers) -> Tuple[str, str, str]:
     tone = _tone_line(answers.get("email_tone", ""))
+    voice_block = _voice_block(answers)
     prompt = f"""You are an expert B2B sales copywriter writing a cold intro email
 for ONE specific prospect. The whole point is to PROVE you researched them, so
 the email must reference a concrete, specific detail about THEIR company (from
@@ -73,9 +98,9 @@ WHAT WE SELL: {answers.get('company_offer','')}
 THE #1 OUTCOME WE DELIVER: {answers.get('value_prop','')}
 SIGNED BY: {answers.get('sender_name','')}, {answers.get('sender_title','')}
 SIGNATURE CONTACT: email {answers.get('sender_email','')} · phone {answers.get('sender_phone','(none)')} · web {answers.get('company_website','(none)')}
-BOOKING LINK (call-to-action): {answers.get('booking_link','') or '(none — ask for a short call instead)'}
+BOOKING LINK (call-to-action): {answers.get('booking_link','') or '(none, ask for a short call instead)'}
 DESIRED TONE: {tone}
-
+{voice_block}
 THE PROSPECT (all real, verified data — use it, do not contradict it):
 - Name: {prospect.full_name}  (use their first name)
 - Title: {prospect.title}

@@ -122,6 +122,15 @@
   {% endif %}
 </div>
 
+{% if customer.status == 'active' %}
+<div class="card">
+  <h2>✍️ Your writing voice</h2>
+  <p class="muted">The draft emails and LinkedIn notes are a starting point. Add a
+    sample of how you write and we'll draft in your voice, so they need less editing.</p>
+  <a class="btn secondary" href="/voice">Set your voice</a>
+</div>
+{% endif %}
+
 <div class="card">
   <h2>Reports</h2>
   {% if generating %}

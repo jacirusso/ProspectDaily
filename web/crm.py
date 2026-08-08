@@ -175,6 +175,20 @@ def update_lead_value(customer_id: str, lead_id: str, value: int) -> bool:
     return True
 
 
+def update_lead_draft(customer_id: str, lead_id: str, **fields) -> bool:
+    """Update a lead's saved outreach draft (intro_subject / intro_body /
+    linkedin_message) after the customer edits it to their voice."""
+    allowed = {"intro_subject", "intro_body", "linkedin_message"}
+    fields = {k: v for k, v in fields.items() if k in allowed}
+    if not fields or not _owns_lead(customer_id, lead_id):
+        return False
+    cols = ", ".join(f"{k} = ?" for k in fields)
+    db.execute(f"UPDATE leads SET {cols}, updated_at = ? "
+               "WHERE id = ? AND customer_id = ?",
+               (*fields.values(), _now(), lead_id, customer_id))
+    return True
+
+
 def delete_lead(customer_id: str, lead_id: str) -> None:
     """Remove a lead and its activities/tasks, and free its source prospect so
     it can be re-added later."""
