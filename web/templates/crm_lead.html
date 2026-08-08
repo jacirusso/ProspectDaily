@@ -43,18 +43,20 @@
 
     {% if lead.linkedin_message %}
     <div class="card">
-      <div class="copy-head"><h2>LinkedIn message</h2>
+      <div class="copy-head"><h2>LinkedIn note <span class="bonus-tag">Bonus draft</span></h2>
         <button class="btn secondary small" type="button" onclick="copyText('li-msg', this)">Copy</button></div>
       <div class="outreach" id="li-msg">{{ lead.linkedin_message }}</div>
+      <p class="draft-note">A starting point. Edit it to your voice before sending.</p>
     </div>
     {% endif %}
 
     {% if lead.intro_body %}
     <div class="card">
-      <div class="copy-head"><h2>Intro email</h2>
+      <div class="copy-head"><h2>Intro email <span class="bonus-tag">Bonus draft</span></h2>
         <button class="btn secondary small" type="button" onclick="copyText('email-body', this)">Copy</button></div>
       {% if lead.intro_subject %}<p class="email-subj"><strong>Subject:</strong> {{ lead.intro_subject }}</p>{% endif %}
       <div class="outreach" id="email-body">{{ lead.intro_body }}</div>
+      <p class="draft-note">A starting point. Edit it to your voice before sending.</p>
     </div>
     {% endif %}
   </div>
