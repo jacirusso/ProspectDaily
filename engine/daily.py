@@ -102,6 +102,14 @@ def run_all(run_date: str = None) -> dict:
     except Exception:
         log.exception("affiliate payout sweep failed")
 
+    # Daily AI support-chat digest to the operator.
+    try:
+        from web import chat
+        digest = chat.send_daily_digest()
+        log.info("chat digest: %s", digest)
+    except Exception:
+        log.exception("chat digest failed")
+
     summary = {"date": run_date, "customers": len(customers),
                "ok": ok, "failed": failed}
     log.info("done: %s", summary)
