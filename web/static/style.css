@@ -222,6 +222,9 @@ table.kv td { border: none; padding: 5px 0; }
 .prospect-table tr.is-added td { opacity: .55; }
 .ta-right { text-align: right; }
 
+/* Admin customers: keep long emails from stretching the wide table. */
+.email-cell { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ============ Affiliate program ============ */
 .ref-link { display: flex; gap: 8px; align-items: center; }
 .ref-link input { flex: 1; font-family: ui-monospace, "SF Mono", Menlo, monospace;
