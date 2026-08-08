@@ -93,7 +93,13 @@ RULES:
 - Natural, human, {tone}. Under 120 words.
 - One clear call-to-action: if a booking link is provided, invite them to grab a
   time at that link; otherwise ask for a short call. Include the raw link if given.
-- No clichés ("I hope this finds you well", "circling back", "synergy").
+- Sound like a real person typed it, NOT like AI. Hard rules:
+  * NEVER use an em-dash or en-dash (— or –) anywhere. Use a period or comma.
+  * No AI-tells or clichés: "I hope this finds you well", "I wanted to reach out",
+    "I couldn't help but notice", "As a leader in", "In today's fast-paced /
+    ever-evolving landscape", "circling back", "synergy", "leverage", "seamless".
+  * Plain words over fancy ones. Contractions are fine. Avoid perfectly balanced,
+    overly polished sentences. Short and specific beats smooth.
 - Correct grammar. End with a signature block: sender name, title, company, and
   the signature contact details provided above (only the ones that exist).
 

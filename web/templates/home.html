@@ -53,11 +53,11 @@
 <section class="section" id="pricing">
   <div class="inner">
     <p class="eyebrow" style="text-align:center">Pricing</p>
-    <h2 class="big">Simple plans — monthly or annual</h2>
-    <p class="lead">Fresh prospects delivered every weekday. Cancel anytime. Save two months when you pay annually.</p>
+    <h2 class="big">Simple plans — annual or monthly</h2>
+    <p class="lead">Fresh prospects delivered every weekday. Cancel anytime. Pay annually and get two months free.</p>
     <div class="billing-toggle">
-      <button type="button" class="bt-opt active" data-int="month">Monthly</button>
-      <button type="button" class="bt-opt" data-int="year">Annual <span class="bt-save">2 months free</span></button>
+      <button type="button" class="bt-opt active" data-int="year">Annual <span class="bt-save">2 months free</span></button>
+      <button type="button" class="bt-opt" data-int="month">Monthly</button>
     </div>
     <div class="pricing-grid" style="margin-top:16px">
       {% for p in plans %}
@@ -66,10 +66,11 @@
         {% if p.best_value %}<div class="badge">Best value</div>{% endif %}
         <div class="tier">{{ p.name }}</div>
         <div class="amt">
-          <span class="price-monthly">${{ p.price }}<span>/mo</span></span>
-          <span class="price-annual" style="display:none">${{ "{:,}".format(p.annual) }}<span>/yr</span></span>
+          <span class="price-annual">${{ (p.annual / 12) | round | int }}<span>/mo</span></span>
+          <span class="price-monthly" style="display:none">${{ p.price }}<span>/mo</span></span>
         </div>
-        <div class="annual-note" style="display:none">2 months free — save ${{ "{:,}".format(p.price * 2) }}/yr</div>
+        <div class="price-sub sub-annual">billed annually — ${{ "{:,}".format(p.annual) }}/yr · save ${{ "{:,}".format(p.price * 2) }}</div>
+        <div class="price-sub sub-monthly" style="display:none">billed monthly at ${{ p.price }}/mo</div>
         <div class="deliver">{{ p.ordered }} prospects/day</div>
         <ul>
           <li>{{ p.ordered }} prospects every weekday</li>
@@ -90,7 +91,8 @@
       font-size:14px;font-weight:600;color:#475569;cursor:pointer;display:flex;align-items:center;gap:8px;}
     .bt-opt.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(15,23,42,.14);}
     .bt-save{font-size:11px;font-weight:700;color:#047857;background:#eafaf3;padding:2px 8px;border-radius:999px;}
-    .annual-note{font-size:13px;color:#047857;font-weight:600;margin:-4px 0 8px;}
+    .price-sub{font-size:13px;color:#047857;font-weight:600;margin:-4px 0 8px;}
+    .price-sub.sub-monthly{color:var(--muted);}
   </style>
   <script>
   (function(){
@@ -99,8 +101,10 @@
       opts.forEach(function(o){ o.classList.toggle('active', o.dataset.int === iv); });
       document.querySelectorAll('#pricing .price-monthly').forEach(function(e){ e.style.display = iv === 'month' ? '' : 'none'; });
       document.querySelectorAll('#pricing .price-annual').forEach(function(e){ e.style.display = iv === 'year' ? '' : 'none'; });
-      document.querySelectorAll('#pricing .annual-note').forEach(function(e){ e.style.display = iv === 'year' ? '' : 'none'; });
+      document.querySelectorAll('#pricing .sub-monthly').forEach(function(e){ e.style.display = iv === 'month' ? '' : 'none'; });
+      document.querySelectorAll('#pricing .sub-annual').forEach(function(e){ e.style.display = iv === 'year' ? '' : 'none'; });
     }
+    set('year');   // default to annual
     opts.forEach(function(o){ o.addEventListener('click', function(){ set(o.dataset.int); }); });
   })();
   </script>
