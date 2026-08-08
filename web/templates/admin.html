@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Admin{% endblock %}
+{% block wrapclass %}wide{% endblock %}
 {% block body %}
 <h1>Admin</h1>
 <p class="muted">Operator-only. {{ customers|length }} customers ({{ costs.paying }} paying, {{ costs.free }} free).</p>
@@ -93,7 +94,7 @@
     </tr>
     {% for c in customers %}
     <tr>
-      <td>{{ c.email }}</td>
+      <td class="email-cell" title="{{ c.email }}">{{ c.email }}</td>
       <td>{% if c.status=='active' %}<span class="pill ok">active</span>
           {% else %}<span class="pill warn">{{ c.status }}</span>{% endif %}</td>
       <td>{{ c.plan or '—' }}</td>
