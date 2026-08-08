@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from engine import config, db
+from engine import config, db, voice
 from engine.questionnaire import QUESTIONS, validate, blank_answers
 from engine.pipeline import run_for_customer
 from engine import dedupe, audience_builder
@@ -486,6 +486,21 @@ def set_folder(request: Request, folder_id: str = Form("")):
     return RedirectResponse("/dashboard", status_code=303)
 
 
+# --- Voice profile (make drafts sound like you) -------------------------
+@app.get("/voice", response_class=HTMLResponse)
+def voice_form(request: Request):
+    user = require_user(request)
+    return render(request, "voice.html", prof=voice.profile_for(user["id"]),
+                  examples=voice.examples_for(user["id"], limit=12))
+
+
+@app.post("/voice")
+def voice_save(request: Request, sample: str = Form(""), notes: str = Form("")):
+    user = require_user(request)
+    voice.save_profile(user["id"], sample, notes)
+    return RedirectResponse("/voice?saved=1", status_code=303)
+
+
 # --- billing / plans ----------------------------------------------------
 @app.get("/plans", response_class=HTMLResponse)
 def plans_page(request: Request):
@@ -739,6 +754,27 @@ def crm_lead_note(request: Request, lead_id: str, body: str = Form(...),
         raise HTTPException(404, "Lead not found")
     if body.strip():
         crm.add_activity(user["id"], lead_id, kind, body)
+    return RedirectResponse(f"/crm/lead/{lead_id}", status_code=303)
+
+
+@app.post("/crm/lead/{lead_id}/voice")
+def crm_lead_voice(request: Request, lead_id: str, kind: str = Form("email"),
+                   text: str = Form(...)):
+    """Save the customer's edited version of a draft: keep it on the lead AND
+    record it as a voice example so future drafts sound more like them."""
+    user, _ = _require_crm(request)
+    if not crm.get_lead(user["id"], lead_id):
+        raise HTTPException(404, "Lead not found")
+    text = (text or "").strip()
+    kind = "linkedin" if kind == "linkedin" else "email"
+    if text:
+        voice.record_example(user["id"], kind, text)
+        crm.update_lead_draft(user["id"], lead_id,
+                              **({"linkedin_message": text} if kind == "linkedin"
+                                 else {"intro_body": text}))
+        crm.add_activity(user["id"], lead_id, "note",
+                         f"Saved an edited {'LinkedIn note' if kind == 'linkedin' else 'email'} "
+                         "to your voice profile.")
     return RedirectResponse(f"/crm/lead/{lead_id}", status_code=303)
 
 

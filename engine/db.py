@@ -272,6 +272,15 @@ def init_schema() -> None:
             status            TEXT NOT NULL DEFAULT 'pending',
             created_at        {ts} NOT NULL
         )""",
+        # Voice-matching: examples of a customer's own outreach (their edited
+        # drafts) used as few-shot guidance so future drafts sound like them.
+        f"""CREATE TABLE IF NOT EXISTS voice_examples (
+            id            TEXT PRIMARY KEY,
+            customer_id   TEXT NOT NULL,
+            kind          TEXT NOT NULL DEFAULT 'email',
+            text          TEXT NOT NULL DEFAULT '',
+            created_at    {ts} NOT NULL
+        )""",
     ]
     # Best-effort migrations for columns added after a table already existed.
     migrations = [
@@ -281,6 +290,10 @@ def init_schema() -> None:
         "ALTER TABLE customers ADD COLUMN apollo_api_key TEXT NOT NULL DEFAULT ''",
         f"ALTER TABLE customers ADD COLUMN crm_enabled {ic} NOT NULL DEFAULT 0",
         f"ALTER TABLE customers ADD COLUMN comp {ic} NOT NULL DEFAULT 0",
+        "ALTER TABLE customers ADD COLUMN voice_sample TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE customers ADD COLUMN voice_notes TEXT NOT NULL DEFAULT ''",
+        "CREATE INDEX IF NOT EXISTS idx_voice_examples_cust "
+        "ON voice_examples (customer_id, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_report_prospects_cust "
         "ON report_prospects (customer_id, created_at)",
         "CREATE INDEX IF NOT EXISTS idx_leads_cust ON leads (customer_id, stage)",

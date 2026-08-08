@@ -192,6 +192,10 @@ table.kv td { border: none; padding: 5px 0; }
   font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px;
   border-radius: 6px; vertical-align: middle; margin-left: 6px; }
 .draft-note { font-size: 12.5px; color: var(--muted); font-style: italic; margin: 8px 0 0; }
+.voice-edit { margin-top: 10px; }
+.voice-edit summary { cursor: pointer; font-size: 13px; color: var(--brand); font-weight: 600; }
+.voice-edit textarea { margin-top: 8px; }
+.voice-edit .btn { margin: 8px 8px 0 0; }
 
 /* Tasks */
 .task-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

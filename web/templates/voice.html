@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Your writing voice — ProspectDaily{% endblock %}
+{% block body %}
+<h1>Your writing voice</h1>
+<p class="muted">The email and LinkedIn drafts on your prospects are a starting point.
+  Tell us how <em>you</em> write and we'll draft in your voice, so they need less editing.</p>
+
+{% if request.query_params.get('saved') == '1' %}
+  <div class="card" style="border-color:#a7f3d0;background:#ecfdf5"><p style="margin:0">Saved ✓ Your next reports will use this voice.</p></div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/voice">
+    <label>Paste a sample of your own writing
+      <span class="help">A real email or two you've sent, or a few sentences in your natural style. This is what we mirror.</span>
+      <textarea name="sample" rows="8" placeholder="e.g. Hey Sam, saw you just opened a second location — congrats. We help restaurant groups like yours cut card fees without switching POS. Worth a quick call?">{{ prof.sample }}</textarea>
+    </label>
+    <label>Tone notes <span class="help">Optional. Anything about how you like to sound.</span>
+      <textarea name="notes" rows="3" placeholder="e.g. Casual and short. No corporate speak. I use first names and never say 'reach out'.">{{ prof.notes }}</textarea>
+    </label>
+    <p style="margin-top:16px"><button class="btn" type="submit">Save my voice</button></p>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Learned from your edits</h2>
+  <p class="muted" style="margin-top:0">Every time you edit a draft in LeadDaily and hit
+    <strong>“Save my version”</strong>, we keep it here as an example of your voice and use
+    the most recent ones to improve future drafts.</p>
+  {% if examples %}
+    <ul style="list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:10px">
+      {% for e in examples %}
+      <li style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#f7f9fc">
+        <span class="bonus-tag" style="background:#e0e7ff;color:#3730a3">{{ 'LinkedIn' if e.kind=='linkedin' else 'Email' }}</span>
+        <div style="white-space:pre-wrap;font-size:14px;margin-top:8px">{{ e.text }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted" style="margin:0">No saved edits yet. When you tweak a draft in a lead and save your version, it'll show up here.</p>
+  {% endif %}
+</div>
+{% endblock %}

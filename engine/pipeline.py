@@ -85,7 +85,16 @@ def run_for_customer(customer_id: str, answers: dict,
         else:
             p.tier = "spare"
 
-    # 3. AI copywriting for each kept prospect.
+    # 3. AI copywriting for each kept prospect, in the customer's own voice.
+    try:
+        from . import voice as voice_mod
+        answers = dict(answers)
+        prof = voice_mod.profile_for(customer_id)
+        answers["voice_sample"] = prof["sample"]
+        answers["voice_notes"] = prof["notes"]
+        answers["_voice_examples"] = voice_mod.examples_for(customer_id, limit=3)
+    except Exception as e:
+        print(f"[warn] voice enrichment failed: {e}")
     for p in prospects:
         ai.write_for(p, answers)
 
